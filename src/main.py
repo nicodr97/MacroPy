@@ -11,7 +11,8 @@ def parse_input_directory(path):
         return 1
 
     file_names = [f for f in os.listdir(path) if
-                  os.path.isfile(os.path.join(path, f))]
+                  os.path.isfile(os.path.join(path, f)) and not f.startswith(
+                      '.')]
     for file_name in file_names:
         file_name_parts = file_name.split(sep=".")
         error_msg = f"Error in file '{file_name}' . "
