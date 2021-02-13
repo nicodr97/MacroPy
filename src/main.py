@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 from Bio.PDB import PDBParser
+import gzip
 
 
 def parse_input_directory(path):
@@ -47,7 +48,12 @@ def parse_input_directory(path):
 
 def is_chain_in_structure(file_path, chain):
     pdb_parser = PDBParser()
-    structure = pdb_parser.get_structure("prot", file_path)
+    if file_path.split(sep=".")[-1] == "gz":
+        with gzip.open(file_path, 'rt') as pdb_file:
+            structure = pdb_parser.get_structure("", pdb_file)
+    else:
+        structure = pdb_parser.get_structure("", file_path)
+
     chains = [c.get_id() for c in structure.get_chains()]
     return chain in chains
 
