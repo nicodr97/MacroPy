@@ -1,6 +1,5 @@
 import argparse
 import os
-import sys
 from Bio.PDB import PDBParser
 import gzip
 
@@ -65,6 +64,4 @@ if __name__ == "__main__":
                         help="directory containing the input structure files")
 
     args = parser.parse_args()
-    parse_res = parse_input_directory(args.input_directory)
-    if parse_res == 1:
-        sys.exit(1)
+    parse_input_directory(args.input_directory)
