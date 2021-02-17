@@ -63,6 +63,7 @@ def is_chain_in_structure(file_path, chain):
 
 
 def parse_output_directory(path_dir, force):
+    output_dir_error_msg = "Error with output directory. "
     if force is True:
         for folder in ['structures', 'analysis']:
             os.makedirs(os.path.join(path_dir, folder), exist_ok=True)
@@ -71,8 +72,8 @@ def parse_output_directory(path_dir, force):
             for folder in ['structures', 'analysis']:
                 os.makedirs(os.path.join(path_dir, folder), exist_ok=False)
         else:
-            log.error(
-                f"{path_dir} directory already exists. Use [-f, --force] option to overwrite.")
+            log.error(output_dir_error_msg + f"'{path_dir}' directory already exists. Use [-f, "
+                                             "--force] option to overwrite.")
             sys.exit(1)
     return 0
 
