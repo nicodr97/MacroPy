@@ -1,9 +1,10 @@
 import argparse
 import os
-from Bio.PDB import PDBParser
 import gzip
 import sys
 import logging as log
+from Bio.PDB import PDBParser
+from pdb_analysis import analyse_pdb
 
 
 def parse_input_directory(path):
@@ -99,6 +100,8 @@ def main():
 
     parse_input_directory(args.input_directory)
     parse_output_directory(args.output_directory, args.force)
+
+    analyse_pdb(args.input_directory)
 
 
 if __name__ == "__main__":
