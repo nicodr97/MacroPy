@@ -1,6 +1,6 @@
 import os
 import gzip
-from Bio.PDB import PDBParser
+from Bio.PDB import PDBParser, NeighborSearch, Selection, Polypeptide
 
 
 def analyse_pdb(pdb_files_path):
@@ -20,14 +20,40 @@ def analyse_pdb(pdb_files_path):
     models = structure.get_models()
     chains = structure.get_chains()
     residues = structure.get_residues()
-    atoms = structure.get_atoms()
+    atoms = structure.get_atoms()  # this is a generator; call list(atoms) to use as a list
+    atoms_list = Selection.unfold_entities(structure, "A")
 
     model = structure[0]
     chain = model["A"]
-    residue = chain[100]
-    atom = residue["CA"]
 
-    return 0
+    residue = chain[100]
+    residue_name = residue.get_resname()
+    has_atom_ca = residue.has_id("CA")
+    print("Is the residue an amino acid? ", Polypeptide.is_aa(residue))
+
+    atom = residue["CA"]
+    atom_coords = atom.get_coord()
+    atom_id = atom.get_id()
+
+    residue2 = chain[101]
+    atom2 = residue2["CA"]
+    distance = atom - atom2
+    print(f"Distance between atoms {atom_id} and {atom2.get_id()} = {distance} Å")
+
+    neighbor_search = NeighborSearch(list(atoms))
+    radius = 2
+    neighbor_atoms = neighbor_search.search(atom_coords, radius)
+    print(f"{len(neighbor_atoms) - 1} atoms are in a radius of {radius} Å")
+
+    ppb = Polypeptide.PPBuilder()
+    ppb_polypeptides = ppb.build_peptides(structure)
+    ppb_sequences = [pp.get_sequence() for pp in ppb_polypeptides]
+
+    cappb = Polypeptide.CaPPBuilder()
+    cappb_polypeptides = cappb.build_peptides(structure)
+    sequences = [pp.get_sequence() for pp in cappb_polypeptides]
+
+    print("Are C-N and CA-CA polypeptides builds equals? ", ppb_sequences == sequences)
 
 
 def get_pdb_structure(file_path, pdb_id):
