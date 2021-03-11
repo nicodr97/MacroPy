@@ -3,23 +3,22 @@ import os
 import gzip
 import sys
 import logging as log
-from Bio.PDB import PDBParser
 from pdb_processing import *
 
 pdbs = dict()
 
-def parse_input_directory(path):
 
+def parse_input_directory(path):
     # Check if input directory is a directory
     input_dir_error_msg = "Error reading input directory. "
     if not os.path.isdir(path):
         log.error(input_dir_error_msg + f"'{path}' is not a directory")
         sys.exit(1)
 
-    # Check each file
     file_names = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
                   and not f.startswith('.')]
 
+    # Check each file
     for file_name in file_names:
         file_name_parts = file_name.split(".")
 
@@ -35,7 +34,6 @@ def parse_input_directory(path):
                 (len(file_name_parts) == 2 and file_name_parts[1] != "pdb"):
             log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
             sys.exit(1)
-
 
         file_name_no_ext = file_name_parts[0]
         file_name_no_ext_parts = file_name_no_ext.split(sep="_")
@@ -54,12 +52,12 @@ def parse_input_directory(path):
         # Check that the chains in the file name are in the PDB
         chains = [c.get_id() for c in structure.get_chains()]
 
-        if not chain_1 in chains:
+        if chain_1 not in chains:
             log.error(input_dir_error_msg + file_error_msg + f": chain {chain_1} not present in "
                                                              "the structure")
             sys.exit(1)
 
-        if not chain_2 in chains:
+        if chain_2 not in chains:
             log.error(input_dir_error_msg + file_error_msg + f": chain {chain_2} not present in "
                                                              "the structure")
             sys.exit(1)
@@ -72,7 +70,6 @@ def parse_input_directory(path):
     return 0
 
 
-
 def get_pdb_structure(file_path, pdb_id):
     pdb_parser = PDBParser()
 
@@ -81,7 +78,6 @@ def get_pdb_structure(file_path, pdb_id):
             return pdb_parser.get_structure(pdb_id, pdb_file)
     else:
         return pdb_parser.get_structure(pdb_id, file_path)
-
 
 
 def parse_output_directory(path_dir, force):
@@ -98,7 +94,6 @@ def parse_output_directory(path_dir, force):
                                              "--force] option to overwrite.")
             sys.exit(1)
     return 0
-
 
 
 def main():
