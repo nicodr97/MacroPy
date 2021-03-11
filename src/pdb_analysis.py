@@ -3,6 +3,9 @@ import gzip
 from Bio.PDB import PDBParser, NeighborSearch, Selection, Polypeptide
 from Bio.pairwise2 import align, format_alignment
 
+'''
+This module is not used. It is meant for testing purposes. It shall be deleted before merging it
+'''
 
 def analyse_pdb(pdb_files_path):
     # structure -> models -> chains -> residues -> atoms
