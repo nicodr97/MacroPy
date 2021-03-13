@@ -4,6 +4,7 @@ import gzip
 import sys
 import logging as log
 from pdb_processing import *
+from biskit import PDBModel
 
 pdbs = dict()
 
@@ -74,13 +75,39 @@ def parse_input_directory(path):
 
 
 def get_pdb_structure(file_path, pdb_id):
-    pdb_parser = PDBParser()
 
     if file_path.split(sep=".")[-1] == "gz":
         with gzip.open(file_path, 'rt') as pdb_file:
-            return pdb_parser.get_structure(pdb_id, pdb_file)
+            structure = PDBParser().get_structure(pdb_id, pdb_file)
+            structure.xtra = get_biskit_seqs(structure, pdb_file, pdb_id)
+            return structure
     else:
-        return pdb_parser.get_structure(pdb_id, file_path)
+        structure = PDBParser().get_structure(pdb_id, file_path)
+        structure.xtra = get_biskit_seqs(structure, file_path, pdb_id)
+        return structure
+
+
+
+def get_biskit_seqs(structure, pdb_file, pdb_id):
+    chain_list = list(structure.get_chains())
+    chain_ids = list(chain.get_id() for chain in chain_list)
+
+    biskit_obj = PDBModel(pdb_file, pdb_id)
+    whole_sequence = biskit_obj.sequence()
+
+    atom_chain_breaks = biskit_obj.chainEndIndex()
+    res_chain_breaks = list( biskit_obj.atom2resIndices(atom_chain_breaks) )
+
+    chain_seqs = dict()
+    prev = 0
+    for i in range(0,len(res_chain_breaks)):
+        ix = list(res_chain_breaks + [None])[i]
+        chain_seqs[chain_ids[i]] = whole_sequence[prev:ix+1]
+        prev = ix + 1
+
+    return chain_seqs
+
+
 
 
 def parse_output_directory(path_dir, force):
