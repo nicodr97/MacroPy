@@ -37,11 +37,6 @@ def parse_input_directory(path):
            (len(parts) <= 3 and \
             (( parts[-1] == "gz" and (len(parts) != 3 or parts[-2] != "pdb") ) or \
              ( parts[-1] == "pdb" and len(parts) != 2 ))):
-
-            # if (len(file_name_parts) != 2 and len(file_name_parts) != 3) or \
-            #         (len(file_name_parts) == 3 and
-            #          (file_name_parts[1] != "pdb" or file_name_parts[2] != "gz")) or \
-            #         (len(file_name_parts) == 2 and file_name_parts[1] != "pdb"):
             log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
             sys.exit(1)
 
@@ -79,6 +74,7 @@ def get_pdb_structure(file_path, pdb_id):
     if file_path.split(sep=".")[-1] == "gz":
         with gzip.open(file_path, 'rt') as pdb_file:
             structure = PDBParser().get_structure(pdb_id, pdb_file)
+            # Include the sequences from biskit in the empty xtra attribute
             structure.xtra = get_biskit_seqs(structure, pdb_file, pdb_id)
             return structure
     else:
@@ -89,19 +85,25 @@ def get_pdb_structure(file_path, pdb_id):
 
 
 def get_biskit_seqs(structure, pdb_file, pdb_id):
+    # Create a list with the chain IDs to use as keys in the dictionary
     chain_list = list(structure.get_chains())
     chain_ids = list(chain.get_id() for chain in chain_list)
 
+    # Process PDB with biskit's PBDModel and extract the concatenated sequence of all the chains
     biskit_obj = PDBModel(pdb_file, pdb_id)
     whole_sequence = biskit_obj.sequence()
 
+    # Use biskit's methods to extract the atom IDs where the chains end
     atom_chain_breaks = biskit_obj.chainEndIndex()
+    # And translate them to residue IDs to split the whole sequence of the pdb in chains
     res_chain_breaks = list( biskit_obj.atom2resIndices(atom_chain_breaks) )
 
     chain_seqs = dict()
     prev = 0
     for i in range(0,len(res_chain_breaks)):
-        ix = list(res_chain_breaks + [None])[i]
+        # Get the last residue of the chain from res_chain_breaks
+        ix = res_chain_breaks[i]
+        # Add the chain sequence to the dictionary with biopython's chain ID as key
         chain_seqs[chain_ids[i]] = whole_sequence[prev:ix+1]
         prev = ix + 1
 
