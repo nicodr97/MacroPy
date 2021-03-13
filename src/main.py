@@ -25,49 +25,52 @@ def parse_input_directory(path):
         # Error messages
         file_error_msg = f"Error in file '{file_name}': "
         wrong_naming_msg = "wrong file naming structure. It should be as follows: " \
-                           "<name>_<chain1>_<chain2>.pdb(.gz) "
+                           "<PDB name>_<chain1>_<chain2>.pdb(.gz) or " \
+                           "<Uniprot ID>.<DNA or RNA>.<PDB name>_<chain1>_<chain2>.pdb(.gz)"
 
         # Check extensions and name
-        if (len(file_name_parts) != 2 and len(file_name_parts) != 3) or \
-                (len(file_name_parts) == 3 and
-                 (file_name_parts[1] != "pdb" or file_name_parts[2] != "gz")) or \
-                (len(file_name_parts) == 2 and file_name_parts[1] != "pdb"):
+        parts = file_name_parts
+        if (len(parts) > 3 and \
+            (( parts[-1] == "gz" and (len(parts) != 5 or parts[-2] != "pdb") ) or \
+            ( parts[-1] == "pdb" and len(parts) != 4 ))) or \
+           (len(parts) <= 3 and \
+            (( parts[-1] == "gz" and (len(parts) != 3 or parts[-2] != "pdb") ) or \
+             ( parts[-1] == "pdb" and len(parts) != 2 ))):
+
+            # if (len(file_name_parts) != 2 and len(file_name_parts) != 3) or \
+            #         (len(file_name_parts) == 3 and
+            #          (file_name_parts[1] != "pdb" or file_name_parts[2] != "gz")) or \
+            #         (len(file_name_parts) == 2 and file_name_parts[1] != "pdb"):
             log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
             sys.exit(1)
 
-        file_name_no_ext = file_name_parts[0]
-        file_name_no_ext_parts = file_name_no_ext.split(sep="_")
-        structure_name = file_name_no_ext_parts[0]
-        chain_1 = file_name_no_ext_parts[1]
-        chain_2 = file_name_no_ext_parts[2]
+        file_name_parts_no_ext = [ part for part in file_name_parts if part != "pdb" and part != "gz" ]
 
-        if not structure_name.isalnum():
+        structure_name = file_name_parts_no_ext[-1]
+        structure_name_parts = structure_name.split(sep="_")
+        pdb_name = structure_name_parts.pop(0)
+        chains_in_file_name = structure_name_parts
+
+        if not pdb_name.isalnum():
             log.error(input_dir_error_msg + file_error_msg + ": PDB name must be alphanumeric")
             sys.exit(1)
 
         # Process PDB
+        file_name_no_ext = ".".join(file_name_parts_no_ext)
         pdbs[file_name_no_ext] = get_pdb_structure(os.path.join(path, file_name), file_name_no_ext)
         structure = pdbs[file_name_no_ext]
 
         # Check that the chains in the file name are in the PDB
         chains = [c.get_id() for c in structure.get_chains()]
 
-        if chain_1 not in chains:
-            log.error(input_dir_error_msg + file_error_msg + f": chain {chain_1} not present in "
-                                                             "the structure")
-            sys.exit(1)
-
-        if chain_2 not in chains:
-            log.error(input_dir_error_msg + file_error_msg + f": chain {chain_2} not present in "
-                                                             "the structure")
-            sys.exit(1)
-
-        if len(chains) > 2:
-            log.error(input_dir_error_msg + file_error_msg + f": there are more than 2 chains in "
-                                                             "the structure")
-            sys.exit(1)
-
+        for chain in chains_in_file_name:
+            for letter in chain:
+                if letter not in chains:
+                    log.error(input_dir_error_msg + file_error_msg + f": chain {letter} not present"
+                                                             " in the structure")
+                    sys.exit(1)
     return 0
+
 
 
 def get_pdb_structure(file_path, pdb_id):

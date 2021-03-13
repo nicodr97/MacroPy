@@ -33,6 +33,7 @@ def process_pdbs(pdb_dict, identity_threshold, rmsd_threshold):
         add_interactions(chain_list)
 
     print("Processed chains: \n\n")
+    print(chain_to_model_chain)
     ######### Loop for checking the result
     for model_chain in processed_chains:
         print(model_chain.id)
@@ -42,6 +43,7 @@ def process_pdbs(pdb_dict, identity_threshold, rmsd_threshold):
             chain2 = chain_interactions[2]
             chain1_structure = Selection.unfold_entities(chain1, "S")[0]
             chain2_structure = Selection.unfold_entities(chain2, "S")[0]
+
 
             print(f"Interaction of {chain1.get_id()} of structure {chain1_structure.get_id()} and "
                   f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
