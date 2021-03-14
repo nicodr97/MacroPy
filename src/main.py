@@ -21,31 +21,42 @@ def parse_input_directory(path):
 
     # Check each file
     for file_name in file_names:
-        file_name_parts = file_name.split(".")
-
         # Error messages
         file_error_msg = f"Error in file '{file_name}': "
         wrong_naming_msg = "wrong file naming structure. It should be as follows: " \
                            "<PDB name>_<chain1>_<chain2>.pdb(.gz) or " \
                            "<Uniprot ID>.<DNA or RNA>.<PDB name>_<chain1>_<chain2>.pdb(.gz)"
 
+        file_name_parts = file_name.split(".")
+
         # Check extensions and name
-        parts = file_name_parts
-        if (len(parts) > 3 and \
-            (( parts[-1] == "gz" and (len(parts) != 5 or parts[-2] != "pdb") ) or \
-            ( parts[-1] == "pdb" and len(parts) != 4 ))) or \
-           (len(parts) <= 3 and \
-            (( parts[-1] == "gz" and (len(parts) != 3 or parts[-2] != "pdb") ) or \
-             ( parts[-1] == "pdb" and len(parts) != 2 ))):
+        has_prot_prot_format_len = len(file_name_parts) == 2 or len(file_name_parts) == 3
+        has_prot_dna_format_len = len(file_name_parts) == 4 or len(file_name_parts) == 5
+
+        has_pdb_format = file_name_parts[-1] == "pdb"
+        has_compressed_format = file_name_parts[-1] == "gz" and file_name_parts[-2] == "pdb"
+
+        if not (has_prot_prot_format_len or has_prot_dna_format_len) or (
+                len(file_name_parts) == 2 and not has_pdb_format) or (
+                len(file_name_parts) == 3 and not has_compressed_format) or (
+                len(file_name_parts) == 4 and not has_pdb_format) or (
+                len(file_name_parts) == 5 and not has_compressed_format):
+
             log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
             sys.exit(1)
 
-        file_name_parts_no_ext = [ part for part in file_name_parts if part != "pdb" and part != "gz" ]
+        file_name_parts_no_ext = [part for part in file_name_parts
+                                  if part != "pdb" and part != "gz"]
 
         structure_name = file_name_parts_no_ext[-1]
         structure_name_parts = structure_name.split(sep="_")
-        pdb_name = structure_name_parts.pop(0)
-        chains_in_file_name = structure_name_parts
+        pdb_name = structure_name_parts[0]
+        chains_in_file_name = structure_name_parts[1:3]
+
+        if has_prot_dna_format_len and file_name_parts_no_ext[1] == "DNA":
+            split_double_chain = list(chains_in_file_name[1])
+            chains_in_file_name[1] = split_double_chain[0]
+            chains_in_file_name.append(split_double_chain[1])
 
         if not pdb_name.isalnum():
             log.error(input_dir_error_msg + file_error_msg + ": PDB name must be alphanumeric")
@@ -60,17 +71,14 @@ def parse_input_directory(path):
         chains = [c.get_id() for c in structure.get_chains()]
 
         for chain in chains_in_file_name:
-            for letter in chain:
-                if letter not in chains:
-                    log.error(input_dir_error_msg + file_error_msg + f": chain {letter} not present"
-                                                             " in the structure")
-                    sys.exit(1)
+            if chain not in chains:
+                log.error(input_dir_error_msg + file_error_msg + f": chain {chain} not present"
+                                                                 " in the structure")
+
     return 0
 
 
-
 def get_pdb_structure(file_path, pdb_id):
-
     if file_path.split(sep=".")[-1] == "gz":
         with gzip.open(file_path, 'rt') as pdb_file:
             structure = PDBParser().get_structure(pdb_id, pdb_file)
