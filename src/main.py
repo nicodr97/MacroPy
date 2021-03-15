@@ -151,6 +151,9 @@ def main():
     parser.add_argument("-it", "--identity-threshold", default=0.95,
                         help="Minimum percentage of sequence similarity (between 0 and 1) "
                              "to consider two PDB chains the same")
+    parser.add_argument("-ns", "--Neighbor-Search-distance", default=3.5,
+                        help="Minimum distance between two PDB chains to consider that "
+                             "they are actually interacting")
     parser.add_argument("-Rt", "--RMSD-threshold", default=2,
                         help="Maximum RMSD value to consider two (similar) PDB chains the same")
     args = parser.parse_args()
@@ -163,7 +166,7 @@ def main():
     parse_input_directory(args.input_directory)
     parse_output_directory(args.output_directory, args.force)
 
-    process_pdbs(pdbs, args.identity_threshold, args.RMSD_threshold)
+    process_pdbs(pdbs, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
 
 
 if __name__ == "__main__":

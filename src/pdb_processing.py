@@ -24,16 +24,26 @@ class ModelChain:
 
 
 # Process PDBs and store their information in ModelChain objects
-def process_pdbs(pdb_dict, identity_threshold, rmsd_threshold):
+def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
     # Go over all the PDBs in the pdb_dict
     for pdb_id, structure in pdb_dict.items():
 
-        ####### Check that they are interacting: NegihborSearch. If they are, proceed with:
+        # Get atoms from each pair of chains
+        chain1, chain2 = list(structure.get_chains())
+        atoms1 = list(chain1.get_atoms())
+        atoms2 = list(chain2.get_atoms())
 
-        initialize_model_chains(structure, identity_threshold, rmsd_threshold)
-        add_interactions(structure)
+        # Neighbor Search to find atoms within a given threshold
+        neighbors_search = NeighborSearch(atoms1)
+        for atom in atoms2:
+            # List of atoms closer than ns_threshold
+            close_atoms = neighbors_search.search(atom.coord, float(ns_threshold))
 
-
+        # Check that at least one pair of atoms are interacting
+        if len(close_atoms) > 0:
+            initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
+            add_interactions(structure)
+        
     ######### Loop for checking the result
     print("Processed chains: \n\n")
     print(chain_to_model_chain)
@@ -61,7 +71,7 @@ def process_pdbs(pdb_dict, identity_threshold, rmsd_threshold):
 
 
 
-def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
+def initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold):
     # Make a list of Biopython chain objects from the Structure
     chain_list = list(structure.get_chains())
 
@@ -71,7 +81,7 @@ def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
         # If this isn't the first PDB to be processed
         if len(processed_chains) > 0:
             # Check if there's any ModelChain that matches or not
-            similar_chain_model = get_similar_chain_model(chain, identity_threshold, rmsd_threshold)
+            similar_chain_model = get_similar_chain_model(chain, identity_threshold, ns_threshold, rmsd_threshold)
             if similar_chain_model is None: # If there isn't, create a new ModelChain
                 sequence = chain.xtra[chain.get_id()]
                 new_model_chain = ModelChain(chain, sequence)
@@ -92,24 +102,24 @@ def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
 
 
 
-def get_similar_chain_model(chain, identity_threshold, rmsd_threshold):
+def get_similar_chain_model(chain, identity_threshold, ns_threshold, rmsd_threshold):
     # Get biskit's chain sequence from the xtra attribute
     chain_seq = chain.xtra[chain.get_id()]
 
     # Compare it with each ModelChain that exists and return it if there's one that matches
     for model_chain in processed_chains:
-        if compare_with_model_chain(chain_seq, model_chain, identity_threshold,
-                                    rmsd_threshold):
+        if compare_with_model_chain(chain_seq, model_chain, identity_threshold, 
+                                    ns_threshold, rmsd_threshold):
             return model_chain
 
     # If there isn't any, return None
     return None
 
 
-def compare_with_model_chain(chain_seq, model_chain, identity_threshold, rmsd_threshold):
+def compare_with_model_chain(chain_seq, model_chain, identity_threshold, ns_threshold, rmsd_threshold):
     # Compare the chain_seq with the sequence of a ModelChain
     alignment = align.globalxx(chain_seq, model_chain.sequence, one_alignment_only=True)[0]
-    if (alignment.score / len(chain_seq)) > identity_threshold:  # or max(len(seq1), len(seq2))?
+    if (alignment.score / len(chain_seq)) > float(identity_threshold):  # or max(len(seq1), len(seq2))?
         return True
 
         ####### RMSD con args.RMSD-threshold
