@@ -28,46 +28,33 @@ def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
     # Go over all the PDBs in the pdb_dict
     for pdb_id, structure in pdb_dict.items():
 
-        # Get atoms from each pair of chains
         chain_list = list(structure.get_chains())
-        if len(chain_list) == 2:
+        # Get atoms from each pair of chains
+        for chain in chain_list:
             chain1 = chain_list[0]
             chain2 = chain_list[1]
             atoms1 = list(chain1.get_atoms())
             atoms2 = list(chain2.get_atoms())
-
+            if len(chain_list) == 3:
+                chain3 = chain_list[2]
+                atoms3 = list(chain3.get_atoms())
+                neighbors_search3 = NeighborSearch(atoms3)
+                for atom in atoms1:
+                    close_atoms13 = neighbors_search3.search(atom.coord, float(ns_threshold))
+                    if len(close_atoms13) > 0:
+                        initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
+                        add_interactions(structure)
+                for atom in atoms2:
+                    close_atoms23 = neighbors_search3.search(atom.coord, float(ns_threshold))
+                    if len(close_atoms23) > 0:
+                        initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
+                        add_interactions(structure)
             # Neighbor Search to find atoms within a given threshold
             neighbors_search1 = NeighborSearch(atoms1)
             for atom in atoms2:
                 # List of atoms closer than ns_threshold
                 close_atoms12 = neighbors_search1.search(atom.coord, float(ns_threshold))
                 # Check that at least one pair of atoms are interacting
-                if len(close_atoms12) > 0:
-                    initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
-                    add_interactions(structure)
-
-        elif len(chain_list) == 3:
-            chain1 = chain_list[0]
-            chain2 = chain_list[1]
-            chain3 = chain_list[2]
-            atoms1 = list(chain1.get_atoms())
-            atoms2 = list(chain2.get_atoms())
-            atoms3 = list(chain3.get_atoms())
-
-            # Neighbor Search to find atoms within a given threshold
-            neighbors_search1 = NeighborSearch(atoms1)
-            neighbors_search2 = NeighborSearch(atoms2)
-            for atom in atoms3:
-                close_atoms13 = neighbors_search1.search(atom.coord, float(ns_threshold))
-                if len(close_atoms13) > 0:
-                    initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
-                    add_interactions(structure)
-                close_atoms23 = neighbors_search2.search(atom.coord, float(ns_threshold))
-                if len(close_atoms23) > 0:
-                    initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
-                    add_interactions(structure)
-            for atom in atoms2:
-                close_atoms12 = neighbors_search1.search(atom.coord, float(ns_threshold))
                 if len(close_atoms12) > 0:
                     initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
                     add_interactions(structure)
