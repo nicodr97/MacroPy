@@ -71,9 +71,9 @@ def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
             chain1_structure = Selection.unfold_entities(chain1, "S")[0]
             chain2_structure = Selection.unfold_entities(chain2, "S")[0]
 
-            print(f"Interaction of {chain1.get_id()} of structure {chain1_structure.get_id()} and "
-                  f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
-                  f"{interacting_model_chain.id}")
+            #print(f"Interaction of {chain1.get_id()} of structure {chain1_structure.get_id()} and "
+                  #f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
+                  #f"{interacting_model_chain.id}")
 
 def initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold):
     # Make a list of Biopython chain objects from the Structure
@@ -116,6 +116,13 @@ def get_similar_chain_model(chain, identity_threshold, ns_threshold, rmsd_thresh
             # Calculate RMSD between the homologous sequences
             chain_atoms = list(chain.get_atoms())
             model_atoms = list(model_chain.chain.get_atoms())
+            # Check if fixed and moving atoms have different size
+            if len(model_atoms) != len(chain_atoms):
+                # Get only the common part
+                atoms_length = min(len(model_atoms), len(chain_atoms))
+                chain_atoms = chain_atoms[:atoms_length]
+                model_atoms = model_atoms[:atoms_length]
+            # Superposition between model and chain
             super_imposer = Superimposer()
             super_imposer.set_atoms(model_atoms, chain_atoms)
             RMSD = super_imposer.rms
