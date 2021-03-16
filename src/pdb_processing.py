@@ -26,38 +26,10 @@ class ModelChain:
 def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
     # Go over all the PDBs in the pdb_dict
     for pdb_id, structure in pdb_dict.items():
+        interacting_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
+        initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
+        add_interactions(structure)
 
-        chain_list = list(structure.get_chains())
-        # Get atoms from each pair of chains
-        for chain in chain_list:
-            chain1 = chain_list[0]
-            chain2 = chain_list[1]
-            atoms1 = list(chain1.get_atoms())
-            atoms2 = list(chain2.get_atoms())
-            if len(chain_list) == 3:
-                chain3 = chain_list[2]
-                atoms3 = list(chain3.get_atoms())
-                neighbors_search3 = NeighborSearch(atoms3)
-                for atom in atoms1:
-                    close_atoms13 = neighbors_search3.search(atom.coord, float(ns_threshold))
-                    if len(close_atoms13) > 0:
-                        initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
-                        add_interactions(structure)
-                for atom in atoms2:
-                    close_atoms23 = neighbors_search3.search(atom.coord, float(ns_threshold))
-                    if len(close_atoms23) > 0:
-                        initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
-                        add_interactions(structure)
-            # Neighbor Search to find atoms within a given threshold
-            neighbors_search1 = NeighborSearch(atoms1)
-            for atom in atoms2:
-                # List of atoms closer than ns_threshold
-                close_atoms12 = neighbors_search1.search(atom.coord, float(ns_threshold))
-                # Check that at least one pair of atoms are interacting
-                if len(close_atoms12) > 0:
-                    initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
-                    add_interactions(structure)
-        
     ######### Loop for checking the result
     print("Processed chains: \n\n")
     print(chain_to_model_chain)
@@ -71,9 +43,41 @@ def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
             chain1_structure = Selection.unfold_entities(chain1, "S")[0]
             chain2_structure = Selection.unfold_entities(chain2, "S")[0]
 
-            #print(f"Interaction of {chain1.get_id()} of structure {chain1_structure.get_id()} and "
-                  #f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
-                  #f"{interacting_model_chain.id}")
+            print(f"Interaction of {chain1.get_id()} of structure {chain1_structure.get_id()} and "
+                  f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
+                  f"{interacting_model_chain.id}")
+
+def interacting_chains(structure, identity_threshold, ns_threshold, rmsd_threshold):
+    chain_list = list(structure.get_chains())
+    # Get atoms from each pair of chains
+    for chain in chain_list:
+        chain1 = chain_list[0]
+        chain2 = chain_list[1]
+        atoms1 = list(chain1.get_atoms())
+        atoms2 = list(chain2.get_atoms())
+        if len(chain_list) == 3:
+            chain3 = chain_list[2]
+            atoms3 = list(chain3.get_atoms())
+            neighbors_search3 = NeighborSearch(atoms3)
+            for atom in atoms1:
+                close_atoms13 = neighbors_search3.search(atom.coord, float(ns_threshold))
+                if len(close_atoms13) > 0:
+                    return True
+                return False
+            for atom in atoms2:
+                close_atoms23 = neighbors_search3.search(atom.coord, float(ns_threshold))
+                if len(close_atoms23) > 0:
+                    return True
+                return False
+        # Neighbor Search to find atoms within a given threshold
+        neighbors_search1 = NeighborSearch(atoms1)
+        for atom in atoms2:
+            # List of atoms closer than ns_threshold
+            close_atoms12 = neighbors_search1.search(atom.coord, float(ns_threshold))
+            # Check that at least one pair of atoms are interacting
+            if len(close_atoms12) > 0:    
+                return True
+            return False
 
 def initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold):
     # Make a list of Biopython chain objects from the Structure
