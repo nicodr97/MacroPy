@@ -3,17 +3,11 @@ import os
 import gzip
 import sys
 import logging as log
-from pdb_processing import *
 from Bio.Data.IUPACData import protein_letters_3to1
+from pdb_processing import *
+from reconstruction import *
 
 pdbs = dict()
-
-# dna_letters_2to1 = {
-#     "DA": "A",
-#     "DC": "C",
-#     "DG": "G",
-#     "DT": "T"
-# }
 
 
 def parse_input_directory(path):
@@ -105,20 +99,6 @@ def add_chain_sequences(structure):
             # Protein sequence
             chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
                                       for res in chain.get_residues() if res.get_id()[0].isspace()])
-
-        # if first_residue.get_resname().startswith("  "):
-        #     # RNA sequence
-        #     chain_sequence = "".join([res.get_resname().strip() for res in chain.get_residues()])
-        # elif first_residue.get_resname().startswith(" "):
-        #     # DNA sequence
-        #     chain_sequence = "".join([dna_letters_2to1[res.get_resname().strip()]
-        #                               for res in chain.get_residues()])
-        # else:
-        #     # Protein sequence
-        #     chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
-        #                               for res in chain.get_residues() if res.get_id()[0].isspace()])
-
-        # Include the sequence in the empty xtra attribute
         chain.xtra = chain_sequence
 
 
@@ -169,6 +149,8 @@ def main():
     parse_output_directory(args.output_directory, args.force)
 
     process_pdbs(pdbs, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
+
+    testfunc(args.output_directory)
 
 
 if __name__ == "__main__":

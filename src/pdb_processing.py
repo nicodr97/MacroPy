@@ -140,13 +140,9 @@ def get_similar_chain_model(chain, identity_threshold, ns_threshold, rmsd_thresh
 def align_with_modelchain(chain_seq, model_chain, identity_threshold):
     # Compare the chain_seq with the sequence of a ModelChain
     alignment = align.globalxx(chain_seq, model_chain.sequence, one_alignment_only=True)[0]
-    print(chain_seq)
-    print(model_chain.sequence)
     longest_length = max(len(chain_seq), len(model_chain.sequence))
-    print(alignment.score / longest_length)
     if (alignment.score / longest_length) > float(identity_threshold):
         return True
-    print("False")
     return False
 
 def superimpose_with_modelchain(chain, model_chain, rmsd_threshold):
@@ -160,12 +156,11 @@ def superimpose_with_modelchain(chain, model_chain, rmsd_threshold):
         chain_atoms_idx = (len(chain_atoms) - atoms_length)/2
         chain_atoms = chain_atoms[chain_atoms_idx:len(chain_atoms)-chain_atoms_idx]
         model_atoms_idx = (len(model_atoms) - atoms_length)/2
-        model_atoms = model_atoms[chain_atoms_idx:len(model_atoms)-model_atoms_idx]
+        model_atoms = model_atoms[model_atoms_idx:len(model_atoms)-model_atoms_idx]
     # Superposition between model and chain
     super_imposer = Superimposer()
     super_imposer.set_atoms(model_atoms, chain_atoms)
     RMSD = super_imposer.rms
-    print(chain.get_full_id(), model_chain.chain.get_full_id(), RMSD)
     if RMSD < rmsd_threshold:
         return True
     return False
