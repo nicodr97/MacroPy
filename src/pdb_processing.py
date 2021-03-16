@@ -26,9 +26,12 @@ class ModelChain:
 def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
     # Go over all the PDBs in the pdb_dict
     for pdb_id, structure in pdb_dict.items():
-        interacting_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
-        initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
-        add_interactions(structure)
+        if is_interaction(structure, identity_threshold, ns_threshold, rmsd_threshold):
+            initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold)
+            add_interactions(structure)
+        else:
+            # Warning
+            pass
 
     ######### Loop for checking the result
     print("Processed chains: \n\n")
@@ -47,7 +50,9 @@ def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
                   f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
                   f"{interacting_model_chain.id}")
 
-def interacting_chains(structure, identity_threshold, ns_threshold, rmsd_threshold):
+
+
+def is_interaction(structure, identity_threshold, ns_threshold, rmsd_threshold):
     chain_list = list(structure.get_chains())
     # Get atoms from each pair of chains
     for chain in chain_list:
@@ -63,11 +68,15 @@ def interacting_chains(structure, identity_threshold, ns_threshold, rmsd_thresho
                 close_atoms13 = neighbors_search3.search(atom.coord, float(ns_threshold))
                 if len(close_atoms13) > 0:
                     return True
+                else:
+                    continue
                 return False
             for atom in atoms2:
                 close_atoms23 = neighbors_search3.search(atom.coord, float(ns_threshold))
                 if len(close_atoms23) > 0:
                     return True
+                else:
+                    continue
                 return False
         # Neighbor Search to find atoms within a given threshold
         neighbors_search1 = NeighborSearch(atoms1)
@@ -75,9 +84,13 @@ def interacting_chains(structure, identity_threshold, ns_threshold, rmsd_thresho
             # List of atoms closer than ns_threshold
             close_atoms12 = neighbors_search1.search(atom.coord, float(ns_threshold))
             # Check that at least one pair of atoms are interacting
-            if len(close_atoms12) > 0:    
+            if len(close_atoms12) > 0:
                 return True
+            else:
+                continue
             return False
+
+
 
 def initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold):
     # Make a list of Biopython chain objects from the Structure
@@ -109,32 +122,55 @@ def initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_th
             chain_to_model_chain[chain_id] = new_model_chain
 
 
+
 def get_similar_chain_model(chain, identity_threshold, ns_threshold, rmsd_threshold):
     # Get chain sequence from the xtra attribute
     chain_seq = chain.xtra
     # Compare it with each ModelChain that exists and return it if there's one that matches
     for model_chain in processed_chains:
-        # Compare the chain_seq with the sequence of a ModelChain
-        alignment = align.globalxx(chain_seq, model_chain.sequence, one_alignment_only=True)[0]
-        if (alignment.score / len(chain_seq)) > float(identity_threshold):
-            # Calculate RMSD between the homologous sequences
-            chain_atoms = list(chain.get_atoms())
-            model_atoms = list(model_chain.chain.get_atoms())
-            # Check if fixed and moving atoms have different size
-            if len(model_atoms) != len(chain_atoms):
-                # Get only the common part
-                atoms_length = min(len(model_atoms), len(chain_atoms))
-                chain_atoms = chain_atoms[:atoms_length]
-                model_atoms = model_atoms[:atoms_length]
-            # Superposition between model and chain
-            super_imposer = Superimposer()
-            super_imposer.set_atoms(model_atoms, chain_atoms)
-            RMSD = super_imposer.rms
-            if RMSD < rmsd_threshold:
+        # Compare sequence similarity
+        if align_with_modelchain(chain_seq, model_chain, identity_threshold):
+            # If sequences are similar enough, superimpose the structures
+            if superimpose_with_modelchain(chain, model_chain, rmsd_threshold):
+                # If both are similar, return the ModelChain to which the chain will belong
                 return model_chain
-
     # If there isn't any, return None
     return None
+
+def align_with_modelchain(chain_seq, model_chain, identity_threshold):
+    # Compare the chain_seq with the sequence of a ModelChain
+    alignment = align.globalxx(chain_seq, model_chain.sequence, one_alignment_only=True)[0]
+    print(chain_seq)
+    print(model_chain.sequence)
+    longest_length = max(len(chain_seq), len(model_chain.sequence))
+    print(alignment.score / longest_length)
+    if (alignment.score / longest_length) > float(identity_threshold):
+        return True
+    print("False")
+    return False
+
+def superimpose_with_modelchain(chain, model_chain, rmsd_threshold):
+    # Calculate RMSD between the homologous chains
+    chain_atoms = list(chain.get_atoms())
+    model_atoms = list(model_chain.chain.get_atoms())
+    # Check if fixed and moving atoms lists have different size
+    if len(model_atoms) != len(chain_atoms):
+        # Get the same amount of atoms
+        atoms_length = min(len(model_atoms), len(chain_atoms))
+        chain_atoms_idx = (len(chain_atoms) - atoms_length)/2
+        chain_atoms = chain_atoms[chain_atoms_idx:len(chain_atoms)-chain_atoms_idx]
+        model_atoms_idx = (len(model_atoms) - atoms_length)/2
+        model_atoms = model_atoms[chain_atoms_idx:len(model_atoms)-model_atoms_idx]
+    # Superposition between model and chain
+    super_imposer = Superimposer()
+    super_imposer.set_atoms(model_atoms, chain_atoms)
+    RMSD = super_imposer.rms
+    print(chain.get_full_id(), model_chain.chain.get_full_id(), RMSD)
+    if RMSD < rmsd_threshold:
+        return True
+    return False
+
+
 
 def add_interactions(structure):
     chain_list = list(structure.get_chains())

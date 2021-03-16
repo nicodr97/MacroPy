@@ -8,12 +8,12 @@ from Bio.Data.IUPACData import protein_letters_3to1
 
 pdbs = dict()
 
-dna_letters_2to1 = {
-    "DA": "A",
-    "DC": "C",
-    "DG": "G",
-    "DT": "T"
-}
+# dna_letters_2to1 = {
+#     "DA": "A",
+#     "DC": "C",
+#     "DG": "G",
+#     "DT": "T"
+# }
 
 
 def parse_input_directory(path):
@@ -58,12 +58,10 @@ def parse_input_directory(path):
         structure_name = file_name_parts_no_ext[-1]
         structure_name_parts = structure_name.split(sep="_")
         pdb_name = structure_name_parts[0]
-        chains_in_file_name = structure_name_parts[1:3]
+        chains_in_file_name = structure_name_parts[1:]
 
-        if has_prot_dna_format_len and file_name_parts_no_ext[1] == "DNA":
-            split_double_chain = list(chains_in_file_name[1])
-            chains_in_file_name[1] = split_double_chain[0]
-            chains_in_file_name.append(split_double_chain[1])
+        if has_prot_dna_format_len: # Don't check if [1] is DNA because it can be RNA??
+            chains_in_file_name = [letter for letter in ("").join(chains_in_file_name)]
 
         if not pdb_name.isalnum():
             log.error(input_dir_error_msg + file_error_msg + ": PDB name must be alphanumeric")
@@ -76,7 +74,6 @@ def parse_input_directory(path):
 
         # Check that the chains in the file name are in the PDB
         chains = [c.get_id() for c in structure.get_chains()]
-
         for chain in chains_in_file_name:
             if chain not in chains:
                 log.error(input_dir_error_msg + file_error_msg + f": chain {chain} not present"
@@ -101,17 +98,25 @@ def add_chain_sequences(structure):
     for chain in structure.get_chains():
         # Look at the first non-heteroatom residue to see if it is RNA, DNA or a protein
         first_residue = next(res for res in chain.get_residues() if res.get_id()[0].isspace())
-        if first_residue.get_resname().startswith("  "):
-            # RNA sequence
-            chain_sequence = "".join([res.get_resname().strip() for res in chain.get_residues()])
-        elif first_residue.get_resname().startswith(" "):
-            # DNA sequence
-            chain_sequence = "".join([dna_letters_2to1[res.get_resname().strip()]
-                                      for res in chain.get_residues()])
+        if first_residue.get_resname().startswith(" "):
+            # DNA or RNA sequence with 1 letter ([-1] position) resnames
+            chain_sequence = "".join([res.get_resname()[-1].strip() for res in chain.get_residues()])
         else:
             # Protein sequence
             chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
                                       for res in chain.get_residues() if res.get_id()[0].isspace()])
+
+        # if first_residue.get_resname().startswith("  "):
+        #     # RNA sequence
+        #     chain_sequence = "".join([res.get_resname().strip() for res in chain.get_residues()])
+        # elif first_residue.get_resname().startswith(" "):
+        #     # DNA sequence
+        #     chain_sequence = "".join([dna_letters_2to1[res.get_resname().strip()]
+        #                               for res in chain.get_residues()])
+        # else:
+        #     # Protein sequence
+        #     chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
+        #                               for res in chain.get_residues() if res.get_id()[0].isspace()])
 
         # Include the sequence in the empty xtra attribute
         chain.xtra = chain_sequence
