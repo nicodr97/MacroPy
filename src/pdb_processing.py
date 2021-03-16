@@ -1,4 +1,4 @@
-from Bio.PDB import PDBParser, NeighborSearch, Selection, Polypeptide
+from Bio.PDB import PDBParser, NeighborSearch, Selection, Superimposer
 from Bio.pairwise2 import align, format_alignment
 from string import ascii_uppercase
 
@@ -75,14 +75,6 @@ def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
                   f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
                   f"{interacting_model_chain.id}")
 
-
-# def chain_model_exists(chain, identity_threshold, rmsd_threshold):
-#     chain_seq = Polypeptide.PPBuilder().build_peptides(chain)[0].sequence
-#     # Compare each chain with each of the already processed ModelChains
-#     return any([compare_with_model_chain(chain_seq, model_chain, identity_threshold,
-#                                          rmsd_threshold) for model_chain in processed_chains])
-
-
 def initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_threshold):
     # Make a list of Biopython chain objects from the Structure
     chain_list = list(structure.get_chains())
@@ -116,33 +108,22 @@ def initialize_model_chains(structure, identity_threshold, ns_threshold, rmsd_th
 def get_similar_chain_model(chain, identity_threshold, ns_threshold, rmsd_threshold):
     # Get chain sequence from the xtra attribute
     chain_seq = chain.xtra
-
     # Compare it with each ModelChain that exists and return it if there's one that matches
     for model_chain in processed_chains:
-        if compare_with_model_chain(chain_seq, model_chain, identity_threshold,
-                                    ns_threshold, rmsd_threshold):
-            return model_chain
+        # Compare the chain_seq with the sequence of a ModelChain
+        alignment = align.globalxx(chain_seq, model_chain.sequence, one_alignment_only=True)[0]
+        if (alignment.score / len(chain_seq)) > float(identity_threshold):
+            # Calculate RMSD between the homologous sequences
+            chain_atoms = list(chain.get_atoms())
+            model_atoms = list(model_chain.chain.get_atoms())
+            super_imposer = Superimposer()
+            super_imposer.set_atoms(model_atoms, chain_atoms)
+            RMSD = super_imposer.rms
+            if RMSD < rmsd_threshold:
+                return model_chain
 
     # If there isn't any, return None
     return None
-
-
-def compare_with_model_chain(chain_seq, model_chain, identity_threshold, ns_threshold,
-                             rmsd_threshold):
-    # Compare the chain_seq with the sequence of a ModelChain
-    alignment = align.globalxx(chain_seq, model_chain.sequence, one_alignment_only=True)[0]
-    if (alignment.score / len(chain_seq)) > float(identity_threshold):  # max(len(seq1), len(seq2))?
-        return True
-
-        ####### RMSD con args.RMSD-threshold
-
-    return False
-
-
-# def get_chain_global_id(chain):
-#     chain_structure = Selection.unfold_entities(chain, "S")[0]
-#     return chain_structure.get_id() + "_" + chain.get_id()
-
 
 def add_interactions(structure):
     chain_list = list(structure.get_chains())
