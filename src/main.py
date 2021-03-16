@@ -89,17 +89,15 @@ def get_pdb_structure(file_path, pdb_id):
     if file_path.split(sep=".")[-1] == "gz":
         with gzip.open(file_path, 'rt') as pdb_file:
             structure = PDBParser().get_structure(pdb_id, pdb_file)
-            # Include the sequences from biskit in the empty xtra attribute
-            structure.xtra = get_sequences(structure)
+            add_chain_sequences(structure)
             return structure
     else:
         structure = PDBParser().get_structure(pdb_id, file_path)
-        structure.xtra = get_sequences(structure)
+        add_chain_sequences(structure)
         return structure
 
 
-def get_sequences(structure):
-    chain_seqs = dict()
+def add_chain_sequences(structure):
     for chain in structure.get_chains():
         # Look at the first non-heteroatom residue to see if it is RNA, DNA or a protein
         first_residue = next(res for res in chain.get_residues() if res.get_id()[0].isspace())
@@ -115,9 +113,8 @@ def get_sequences(structure):
             chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
                                       for res in chain.get_residues() if res.get_id()[0].isspace()])
 
-        chain_seqs[chain.get_id()] = chain_sequence
-
-    return chain_seqs
+        # Include the sequence in the empty xtra attribute
+        chain.xtra = chain_sequence
 
 
 def parse_output_directory(path_dir, force):
