@@ -4,9 +4,16 @@ import gzip
 import sys
 import logging as log
 from pdb_processing import *
-from biskit import PDBModel
+from Bio.Data.IUPACData import protein_letters_3to1
 
 pdbs = dict()
+
+dna_letters_2to1 = {
+    "DA": "A",
+    "DC": "C",
+    "DG": "G",
+    "DT": "T"
+}
 
 
 def parse_input_directory(path):
@@ -83,41 +90,34 @@ def get_pdb_structure(file_path, pdb_id):
         with gzip.open(file_path, 'rt') as pdb_file:
             structure = PDBParser().get_structure(pdb_id, pdb_file)
             # Include the sequences from biskit in the empty xtra attribute
-            structure.xtra = get_biskit_seqs(structure, pdb_file, pdb_id)
+            structure.xtra = get_sequences(structure)
             return structure
     else:
         structure = PDBParser().get_structure(pdb_id, file_path)
-        structure.xtra = get_biskit_seqs(structure, file_path, pdb_id)
+        structure.xtra = get_sequences(structure)
         return structure
 
 
-
-def get_biskit_seqs(structure, pdb_file, pdb_id):
-    # Create a list with the chain IDs to use as keys in the dictionary
-    chain_list = list(structure.get_chains())
-    chain_ids = list(chain.get_id() for chain in chain_list)
-
-    # Process PDB with biskit's PBDModel and extract the concatenated sequence of all the chains
-    biskit_obj = PDBModel(pdb_file, pdb_id)
-    whole_sequence = biskit_obj.sequence()
-
-    # Use biskit's methods to extract the atom IDs where the chains end
-    atom_chain_breaks = biskit_obj.chainEndIndex()
-    # And translate them to residue IDs to split the whole sequence of the pdb in chains
-    res_chain_breaks = list( biskit_obj.atom2resIndices(atom_chain_breaks) )
-
+def get_sequences(structure):
     chain_seqs = dict()
-    prev = 0
-    for i in range(0,len(res_chain_breaks)):
-        # Get the last residue of the chain from res_chain_breaks
-        ix = res_chain_breaks[i]
-        # Add the chain sequence to the dictionary with biopython's chain ID as key
-        chain_seqs[chain_ids[i]] = whole_sequence[prev:ix+1]
-        prev = ix + 1
+    for chain in structure.get_chains():
+        # Look at the first non-heteroatom residue to see if it is RNA, DNA or a protein
+        first_residue = next(res for res in chain.get_residues() if res.get_id()[0].isspace())
+        if first_residue.get_resname().startswith("  "):
+            # RNA sequence
+            chain_sequence = "".join([res.get_resname().strip() for res in chain.get_residues()])
+        elif first_residue.get_resname().startswith(" "):
+            # DNA sequence
+            chain_sequence = "".join([dna_letters_2to1[res.get_resname().strip()]
+                                      for res in chain.get_residues()])
+        else:
+            # Protein sequence
+            chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
+                                      for res in chain.get_residues() if res.get_id()[0].isspace()])
+
+        chain_seqs[chain.get_id()] = chain_sequence
 
     return chain_seqs
-
-
 
 
 def parse_output_directory(path_dir, force):
