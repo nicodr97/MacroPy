@@ -153,10 +153,10 @@ def superimpose_with_modelchain(chain, model_chain, rmsd_threshold):
     if len(model_atoms) != len(chain_atoms):
         # Get the same amount of atoms
         atoms_length = min(len(model_atoms), len(chain_atoms))
-        chain_atoms_idx = (len(chain_atoms) - atoms_length)/2
-        chain_atoms = chain_atoms[chain_atoms_idx:len(chain_atoms)-chain_atoms_idx]
-        model_atoms_idx = (len(model_atoms) - atoms_length)/2
-        model_atoms = model_atoms[model_atoms_idx:len(model_atoms)-model_atoms_idx]
+        chain_atoms_idx, remainder = divmod((len(chain_atoms) - atoms_length),  2)
+        chain_atoms = chain_atoms[chain_atoms_idx:len(chain_atoms) - chain_atoms_idx - remainder]
+        model_atoms_idx, remainder = divmod((len(model_atoms) - atoms_length),  2)
+        model_atoms = model_atoms[model_atoms_idx:len(model_atoms) - model_atoms_idx - remainder]
     # Superposition between model and chain
     super_imposer = Superimposer()
     super_imposer.set_atoms(model_atoms, chain_atoms)
