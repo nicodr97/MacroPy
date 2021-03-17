@@ -10,62 +10,98 @@ chain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # E
 added_chains = dict()
 
 
-def testfunc(out_dir):
+def build_complex(out_dir):
     # Get the ModelChain with the longest interactions list
     first_modelchain = max(processed_chains, key = lambda x: len(x.interactions))
 
-    # Objects with the first chain to use and the first Structure (all its chains) to use
+    # Initialize the complex Structure object with one of the PDBs of the ModelChain
     first_chain = first_modelchain.interactions[0][0]
-    first_pdb = first_modelchain.interactions[0][0].parent.parent.copy()
+    complex = first_chain.parent.parent.copy()
 
-    for chain in list(first_pdb.get_chains()):
-        added_chain_id(chain)
+    # Process the first chains: add them to the added_chains dictionary and change their ID
+    for chain in list(complex.get_chains()):
+        rename_added_chain(chain)
 
-    # "Mark" the chain as processed so that its interactions aren't tried to be added a second time
-    list(first_pdb.get_chains())[0].xtra = "processed"
-    add_modelchain_interactions(first_pdb, first_chain, first_modelchain)
+    chain_number_change = 1
+    # Keep trying to add new interactions until no new chains are added
+    while chain_number_change > 0:
+        # Make a list of the chains in the complex and save the number of chains
+        chain_list = list(complex.get_chains())
+        chain_number = len(chain_list)
+        print("Chains before adding:", chain_number)
+
+        # For each chain in the complex whose interactions haven't already been added (not
+        # "processed"), add all the interactions saved in its corresponding ModelChain
+        for chain in [chain for chain in chain_list if "processed" not in chain.xtra]:
+            # Retrieve the corresponding ModelChain by querying the chain_full_id in the
+            # added_chains dictionary and the ModelChain object in the chain_to_model_chain dict
+            chain_full_id = added_chains[chain.get_id()]
+            modelchain_obj = chain_to_model_chain[chain_full_id]
+            print("Adding interactions of:", chain_full_id, len(modelchain_obj.interactions))
+
+            # Add all the chains that interact that are present in the ModelChain, if they
+            # don't clash with existing chains of the complex
+            add_modelchain_interactions(complex, chain, modelchain_obj)
+            # Change the xtra attribute of the chain whose interactions have been added so that
+            # they aren't tried to be added again
+            chain.xtra["processed"] = True
+
+        # Get the new number of chains in the complex to keep adding interactors if new chains have
+        # been added or stop if none have been added or we have reached the max number of chains
+        new_chain_number = len(list(complex.get_chains()))
+        print("Chains after adding:", new_chain_number)
+        if new_chain_number <= 100:
+            chain_number_change = new_chain_number - chain_number
+        else:
+            chain_number_change = 0
+
+
+    # Finally, save the PDB of the Complex
+    save_pdb(complex, out_dir)
+    return 0
+
+def save_pdb(structure, out_dir):
+    io = PDBIO()
+    io.set_structure(structure)
+    pdb_name = "Complex"
+    io.save(os.path.join(out_dir, "structures", pdb_name + ".pdb"))
 
 
 
-    for chain in [chain for chain in list(first_pdb.get_chains()) if chain.xtra != "processed"]:
-        chain_full_id = added_chains[chain.get_id()]
-        modelchain_obj = chain_to_model_chain[chain_full_id]
-
-
-    # Save the PDB of the complex
-    save_pdb(first_pdb, out_dir)
-
-
-
-
-def added_chain_id(chain):
+def rename_added_chain(chain):
+    # Get the new ID for the chain from the chain_ids list
     new_id = chain_ids.pop(0)
+    # Get the full ID of the chain to map it to its new chain ID with the added_chains dictionary
     chain_full_id = get_chain_full_id(chain)
+    # Save the new information
     added_chains[new_id] = chain_full_id
     chain.id = new_id
-    chain.xtra = chain_full_id
+    chain.xtra["full_id"] = chain_full_id
     return 0
 
 
 
 def add_modelchain_interactions(structure, ref_chain, modelchain_obj):
+    # For every interaction in the ModelChain
     for interaction in modelchain_obj.interactions:
+        # Get the rotation-translation matrix
         mov = get_rotran_matrix(ref_chain, interaction[0])
+        # Make a copy of the chain to add it to the Complex being built
         interactor = interaction[-1].copy()
-        added_chain_id(interactor)
+        # Apply the rotation-translation
         interactor.transform(mov[0], mov[1])
+        # If its new atom coordinates won't clash with any existing atoms in the Complex, add it
         if not is_clashing(structure, interactor):
+            # Process the chain IDs before adding it
+            rename_added_chain(interactor)
             structure[0].add(interactor)
         else:
             continue
+    return 0
 
 
 def get_rotran_matrix(ref_chain, mov_chain):
-    # Superimpose the whole Structure of the first interaction into the first_pdb
-    # The superimposition has to be between the specific chains
     ref_atoms = list(ref_chain.get_atoms())
-
-    # The movable chain that belongs to the same ModelChain as first_chain
     mov_atoms = list(mov_chain.get_atoms())
 
     # Get the same amount of atoms
@@ -76,7 +112,7 @@ def get_rotran_matrix(ref_chain, mov_chain):
         mov_atoms_idx, remainder = divmod((len(mov_atoms) - atoms_length),  2)
         mov_atoms = mov_atoms[mov_atoms_idx:len(mov_atoms) - mov_atoms_idx - remainder]
 
-    # Perform the superimposition and save the translation and rotation vectors
+    # Perform the superimposition and save the translation-rotation matrix
     superimpos = Superimposer()
     superimpos.set_atoms(ref_atoms, mov_atoms)
     return superimpos.rotran
@@ -88,22 +124,12 @@ def is_clashing(structure, interactor):
 
     neighbors_search = NeighborSearch(atoms_int)
     clashes = 0
+    # For each atom in the Complex, check if there are clashing atoms in the new chain
     for atom in atoms_str:
-        close_atoms = neighbors_search.search(atom.coord, 0.5)
+        close_atoms = neighbors_search.search(atom.coord, 0.01)
         clashes += len(close_atoms)
+    # Don't consider clashing if there are less than a certain number of close atoms
     if clashes < 10:
         return False
     else:
         return True
-
-
-
-
-
-
-
-def save_pdb(structure, out_dir):
-    io = PDBIO()
-    io.set_structure(structure)
-    pdb_name = "Complex"
-    io.save(os.path.join(out_dir, "structures", pdb_name + ".pdb"))

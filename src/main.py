@@ -109,7 +109,7 @@ def add_chain_sequences(structure):
             # Protein sequence
             chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
                                       for res in chain.get_residues() if res.get_id()[0].isspace()])
-        chain.xtra = chain_sequence
+        chain.xtra["seq"] = chain_sequence
 
 
 def parse_output_directory(path_dir, force):
@@ -161,7 +161,7 @@ def main():
 
     process_pdbs(pdbs, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
 
-    testfunc(args.output_directory)
+    build_complex(args.output_directory)
 
 
 if __name__ == "__main__":

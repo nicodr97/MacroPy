@@ -32,21 +32,21 @@ def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
         add_interactions(structure, ns_threshold)
 
     ######### Loop for checking the result
-    print("Processed chains: \n\n")
-    print(chain_to_model_chain)
-    for model_chain in processed_chains:
-        print(model_chain.id)
-        print(model_chain.sequence)
-        for chain_interactions in model_chain.interactions:
-            chain1 = chain_interactions[0]
-            interacting_model_chain = chain_interactions[1]
-            chain2 = chain_interactions[2]
-            chain1_structure = chain1.parent.parent
-            chain2_structure = chain2.parent.parent
-
-            print(f"Interaction of {chain1.get_id()} of structure {chain1_structure.get_id()} and "
-                  f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
-                  f"{interacting_model_chain.id}")
+    # print("Processed chains: \n\n")
+    # print(chain_to_model_chain)
+    # for model_chain in processed_chains:
+    #     print(model_chain.id)
+    #     print(model_chain.sequence)
+    #     for chain_interactions in model_chain.interactions:
+    #         chain1 = chain_interactions[0]
+    #         interacting_model_chain = chain_interactions[1]
+    #         chain2 = chain_interactions[2]
+    #         chain1_structure = chain1.parent.parent
+    #         chain2_structure = chain2.parent.parent
+    #
+    #         print(f"Interaction of {chain1.get_id()} of structure {chain1_structure.get_id()} and "
+    #               f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
+    #               f"{interacting_model_chain.id}")
 
 
 def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
@@ -61,7 +61,7 @@ def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
             # Check if there's any ModelChain that matches or not
             similar_chain_model = get_similar_chain_model(chain, identity_threshold, rmsd_threshold)
             if similar_chain_model is None:  # If there isn't, create a new ModelChain
-                sequence = chain.xtra
+                sequence = chain.xtra["seq"]
                 new_model_chain = ModelChain(chain, sequence)
                 processed_chains.append(new_model_chain)
                 chain_id = get_chain_full_id(chain)
@@ -72,7 +72,7 @@ def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
         # If it is the first PDB to be processed
         else:
             # Create the first ModelChain
-            sequence = chain.xtra
+            sequence = chain.xtra["seq"]
             new_model_chain = ModelChain(chain, sequence)
             processed_chains.append(new_model_chain)
             chain_id = get_chain_full_id(chain)
@@ -81,7 +81,7 @@ def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
 
 def get_similar_chain_model(chain, identity_threshold, rmsd_threshold):
     # Get chain sequence from the xtra attribute
-    chain_seq = chain.xtra
+    chain_seq = chain.xtra["seq"]
     # Compare it with each ModelChain that exists and return it if there's one that matches
     for model_chain in processed_chains:
         # If sequences are similar enough, superimpose the structures
