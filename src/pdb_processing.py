@@ -31,22 +31,22 @@ def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
         initialize_model_chains(structure, identity_threshold, rmsd_threshold)
         add_interactions(structure, ns_threshold)
 
-    ######### Loop for checking the result
-    # print("Processed chains: \n\n")
-    # print(chain_to_model_chain)
-    # for model_chain in processed_chains:
-    #     print(model_chain.id)
-    #     print(model_chain.sequence)
-    #     for chain_interactions in model_chain.interactions:
-    #         chain1 = chain_interactions[0]
-    #         interacting_model_chain = chain_interactions[1]
-    #         chain2 = chain_interactions[2]
-    #         chain1_structure = chain1.parent.parent
-    #         chain2_structure = chain2.parent.parent
-    #
-    #         print(f"Interaction of {chain1.get_id()} of structure {chain1_structure.get_id()} and "
-    #               f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
-    #               f"{interacting_model_chain.id}")
+    ######## Loop for checking the result
+    print("Processed chains: \n\n")
+    print(chain_to_model_chain)
+    for model_chain in processed_chains:
+        print(model_chain.id)
+        print(model_chain.sequence)
+        for chain_interactions in model_chain.interactions:
+            chain1 = chain_interactions[0]
+            interacting_model_chain = chain_interactions[1]
+            chain2 = chain_interactions[2]
+            chain1_structure = chain1.parent.parent
+            chain2_structure = chain2.parent.parent
+
+            print(f"Interaction of {chain1.get_id()} of structure {chain1_structure.get_id()} and "
+                  f"{chain2.get_id()} of structure {chain2_structure.get_id()} and model chain "
+                  f"{interacting_model_chain.id}")
 
 
 def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
@@ -118,7 +118,7 @@ def superimpose_with_modelchain(chain, model_chain, rmsd_threshold):
     super_imposer.set_atoms(model_atoms, chain_atoms)
     rmsd = super_imposer.rms
 
-    return rmsd < rmsd_threshold
+    return rmsd < float(rmsd_threshold)
 
 
 def add_interactions(structure, ns_threshold):

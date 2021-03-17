@@ -1,13 +1,12 @@
 # import copy
 import os
 from pdb_processing import *
-from Bio.PDB import Superimposer, PDBIO
+from Bio.PDB import Superimposer, MMCIFIO
 from string import ascii_uppercase
 
 letter_list = list(ascii_uppercase)  # List of A-Z to use as the chains' new ids
 chain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # Extended list A-ZZ
 
-added_chains = dict()
 
 
 def build_complex(out_dir):
@@ -18,7 +17,7 @@ def build_complex(out_dir):
     first_chain = first_modelchain.interactions[0][0]
     complex = first_chain.parent.parent.copy()
 
-    # Process the first chains: add them to the added_chains dictionary and change their ID
+    # Process the first chains: change their ID and save the original full ID
     for chain in list(complex.get_chains()):
         rename_added_chain(chain)
 
@@ -33,9 +32,9 @@ def build_complex(out_dir):
         # For each chain in the complex whose interactions haven't already been added (not
         # "processed"), add all the interactions saved in its corresponding ModelChain
         for chain in [chain for chain in chain_list if "processed" not in chain.xtra]:
-            # Retrieve the corresponding ModelChain by querying the chain_full_id in the
-            # added_chains dictionary and the ModelChain object in the chain_to_model_chain dict
-            chain_full_id = added_chains[chain.get_id()]
+            # Retrieve the corresponding ModelChain by obtaining the chain_full_id from the .xtra
+            # attribute and querying the chain_to_model_chain dict for the ModelChain object
+            chain_full_id = chain.xtra["full_id"]
             modelchain_obj = chain_to_model_chain[chain_full_id]
             print("Adding interactions of:", chain_full_id, len(modelchain_obj.interactions))
 
@@ -50,7 +49,7 @@ def build_complex(out_dir):
         # been added or stop if none have been added or we have reached the max number of chains
         new_chain_number = len(list(complex.get_chains()))
         print("Chains after adding:", new_chain_number)
-        if new_chain_number <= 100:
+        if new_chain_number <= 180:
             chain_number_change = new_chain_number - chain_number
         else:
             chain_number_change = 0
@@ -61,20 +60,19 @@ def build_complex(out_dir):
     return 0
 
 def save_pdb(structure, out_dir):
-    io = PDBIO()
+    io = MMCIFIO()
     io.set_structure(structure)
     pdb_name = "Complex"
-    io.save(os.path.join(out_dir, "structures", pdb_name + ".pdb"))
+    io.save(os.path.join(out_dir, "structures", pdb_name + ".cif"))
 
 
 
 def rename_added_chain(chain):
     # Get the new ID for the chain from the chain_ids list
     new_id = chain_ids.pop(0)
-    # Get the full ID of the chain to map it to its new chain ID with the added_chains dictionary
+    # Get the full ID of the chain to save it in the .xtra attribute
     chain_full_id = get_chain_full_id(chain)
     # Save the new information
-    added_chains[new_id] = chain_full_id
     chain.id = new_id
     chain.xtra["full_id"] = chain_full_id
     return 0
@@ -119,15 +117,36 @@ def get_rotran_matrix(ref_chain, mov_chain):
 
 
 def is_clashing(structure, interactor):
-    atoms_int = list(interactor.get_atoms())
-    atoms_str = list(structure.get_atoms())
+    # First, search for close CAs to then restrict a more exhaustive search to the closer chains
+    CA_str = [atom for atom in list(structure.get_atoms()) if atom.get_id() == "CA"]
+    CA_int = [atom for atom in list(interactor.get_atoms()) if atom.get_id() == "CA"]
 
-    neighbors_search = NeighborSearch(atoms_int)
+    neighbors_search = NeighborSearch(CA_str)
+    close_CA = list()
+    # For each CA in the interactor, check if there are close CAs in the complex
+    for atom in CA_int:
+        close_atoms = neighbors_search.search(atom.coord, 0.5*5)
+        if len(close_atoms) > 0:
+            close_CA.append(close_atoms)
+
+    # Get the chains of the Complex from which at least a CA has been found to be close
+    close_chains = set(atom.parent.parent for CA_list in close_CA for atom in CA_list)
+    # If there are none, don't consider clashing
+    if len(close_chains) == 0:
+        return False
+
+    # Exhaustive search, with all the atoms from the closer chains and the interactor
+    chains_atoms = [atom for chain in close_chains for atom in chain.get_atoms()]
+    int_atoms = list(interactor.get_atoms())
+
+    exhaustive_search = NeighborSearch(chains_atoms)
     clashes = 0
-    # For each atom in the Complex, check if there are clashing atoms in the new chain
-    for atom in atoms_str:
-        close_atoms = neighbors_search.search(atom.coord, 0.01)
+    # For each atom in the interactor, check if there are clashing atoms in the Complex
+    for atom in int_atoms:
+        close_atoms = exhaustive_search.search(atom.coord, 0.5)
         clashes += len(close_atoms)
+        if clashes > 10:
+            break
     # Don't consider clashing if there are less than a certain number of close atoms
     if clashes < 10:
         return False
