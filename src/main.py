@@ -2,7 +2,6 @@ import argparse
 import os
 import gzip
 import sys
-import warnings
 import logging as log
 from Bio.PDB import PDBParser
 from Bio.Data.IUPACData import protein_letters_3to1

@@ -1,3 +1,4 @@
+
 from Bio.PDB import NeighborSearch, Superimposer
 from Bio.pairwise2 import align
 from string import ascii_uppercase
@@ -48,8 +49,8 @@ def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
                   f"{interacting_model_chain.id}")
 
 
-
 def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
+
     # Make a list of Biopython chain objects from the Structure
     chain_list = list(structure.get_chains())
 
