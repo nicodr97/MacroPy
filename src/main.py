@@ -54,8 +54,16 @@ def parse_input_directory(path):
         pdb_name = structure_name_parts[0]
         chains_in_file_name = structure_name_parts[1:]
 
-        if has_prot_dna_format_len: # Don't check if [1] is DNA because it can be RNA??
-            chains_in_file_name = [letter for letter in ("").join(chains_in_file_name)]
+        # Only DNA has double chain
+        '''
+        if has_prot_dna_format_len and file_name_parts_no_ext[1] == "DNA":
+            split_double_chain = list(chains_in_file_name[1])
+            chains_in_file_name[1] = split_double_chain[0]
+            chains_in_file_name.append(split_double_chain[1])
+        '''
+
+        if has_prot_dna_format_len:  # Don't check if [1] is DNA because it can be RNA??
+            chains_in_file_name = [chain_letter for chain_letter in "".join(chains_in_file_name)]
 
         if not pdb_name.isalnum():
             log.error(input_dir_error_msg + file_error_msg + ": PDB name must be alphanumeric")
