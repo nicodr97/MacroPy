@@ -4,6 +4,7 @@ import gzip
 import sys
 import warnings
 import logging as log
+from Bio.PDB import PDBParser
 from Bio.Data.IUPACData import protein_letters_3to1
 from pdb_processing import *
 from reconstruction import *
@@ -88,15 +89,11 @@ def parse_input_directory(path):
 def get_pdb_structure(file_path, pdb_id):
     if file_path.split(sep=".")[-1] == "gz":
         with gzip.open(file_path, 'rt') as pdb_file:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                structure = PDBParser().get_structure(pdb_id, pdb_file)
+            structure = PDBParser().get_structure(pdb_id, pdb_file)
             add_chain_sequences(structure)
             return structure
     else:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            structure = PDBParser().get_structure(pdb_id, file_path)
+        structure = PDBParser().get_structure(pdb_id, file_path)
         add_chain_sequences(structure)
         return structure
 
@@ -133,7 +130,7 @@ def parse_output_directory(path_dir, force):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-i", "--input-directory", required=True,
                         help="Directory containing the input structure files")
     parser.add_argument("-o", "--output-directory", required=True,
@@ -157,7 +154,8 @@ def main():
     if args.verbose:
         log.basicConfig(format="%(message)s", level=log.INFO)
     else:
-        log.basicConfig(format="%(message)s", level=log.WARNING)
+        log.basicConfig(format="%(message)s", level=log.ERROR)
+        log.captureWarnings(True)
 
     parse_input_directory(args.input_directory)
     parse_output_directory(args.output_directory, args.force)
