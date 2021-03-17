@@ -106,8 +106,9 @@ def add_chain_sequences(structure):
         # Look at the first non-heteroatom residue to see if it is RNA, DNA or a protein
         first_residue = next(res for res in chain.get_residues() if res.get_id()[0].isspace())
         if first_residue.get_resname().startswith(" "):
-            # DNA or RNA sequence with 1 letter ([-1] position) resnames
-            chain_sequence = "".join([res.get_resname()[-1].strip() for res in chain.get_residues()])
+            # DNA or RNA sequence with 1 letter ([-1] position of resname)
+            chain_sequence = "".join([res.get_resname()[-1] for res in chain.get_residues()
+                                      if res.get_id()[0].isspace()])
         else:
             # Protein sequence
             chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
