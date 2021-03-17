@@ -2,6 +2,7 @@ import argparse
 import os
 import gzip
 import sys
+import warnings
 import logging as log
 from Bio.Data.IUPACData import protein_letters_3to1
 from pdb_processing import *
@@ -87,11 +88,15 @@ def parse_input_directory(path):
 def get_pdb_structure(file_path, pdb_id):
     if file_path.split(sep=".")[-1] == "gz":
         with gzip.open(file_path, 'rt') as pdb_file:
-            structure = PDBParser().get_structure(pdb_id, pdb_file)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                structure = PDBParser().get_structure(pdb_id, pdb_file)
             add_chain_sequences(structure)
             return structure
     else:
-        structure = PDBParser().get_structure(pdb_id, file_path)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            structure = PDBParser().get_structure(pdb_id, file_path)
         add_chain_sequences(structure)
         return structure
 
