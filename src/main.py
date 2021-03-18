@@ -148,6 +148,15 @@ def main():
                              "they are actually interacting")
     parser.add_argument("-Rt", "--RMSD-threshold", default=2,
                         help="Maximum RMSD value to consider two (similar) PDB chains the same")
+    parser.add_argument("-cd", "--clashes-distance", default=0.5,
+                        help="Maximum distance between two PDB interacting chains to consider that "
+                             "they have clashes between them")
+    parser.add_argument("-cad", "--CA-atoms-distance", default = 5,
+                        help="Maximum distance between Alpha carbons atoms of two PDB interacting "
+                             "chains to consider they have clashes between them")
+    parser.add_argument("-nc", "--number-clashes", default = 10,
+                        help="Maximum number of close atoms to consider two PDB interacting chains can "
+                             "have a clash")
     args = parser.parse_args()
 
     if args.verbose:
@@ -161,7 +170,8 @@ def main():
 
     process_pdbs(pdbs, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
 
-    build_complex(args.output_directory)
+    build_complex(args.output_directory, args.clashes_distance, args.CA_atoms_distance, 
+                    args.number_clashes)
 
 
 if __name__ == "__main__":

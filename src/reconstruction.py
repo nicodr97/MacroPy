@@ -9,7 +9,7 @@ chain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # E
 
 
 
-def build_complex(out_dir):
+def build_complex(out_dir,clashes_distance, ca_distance, number_clashes):
     # Get the ModelChain with the longest interactions list
     first_modelchain = max(processed_chains, key = lambda x: len(x.interactions))
 
@@ -40,7 +40,8 @@ def build_complex(out_dir):
 
             # Add all the chains that interact that are present in the ModelChain, if they
             # don't clash with existing chains of the complex
-            add_modelchain_interactions(complex, chain, modelchain_obj)
+            add_modelchain_interactions(complex, chain, modelchain_obj,clashes_distance, 
+                                        ca_distance, number_clashes)
             # Change the xtra attribute of the chain whose interactions have been added so that
             # they aren't tried to be added again
             chain.xtra["processed"] = True
@@ -79,7 +80,8 @@ def rename_added_chain(chain):
 
 
 
-def add_modelchain_interactions(structure, ref_chain, modelchain_obj):
+def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_distance, 
+                                ca_distance, number_clashes):
     # For every interaction in the ModelChain
     for interaction in modelchain_obj.interactions:
         # Get the rotation-translation matrix
@@ -89,7 +91,8 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj):
         # Apply the rotation-translation
         interactor.transform(mov[0], mov[1])
         # If its new atom coordinates won't clash with any existing atoms in the Complex, add it
-        if not is_clashing(structure, interactor):
+        if not is_clashing(structure, interactor, clashes_distance, ca_distance, 
+                            number_clashes):
             # Process the chain IDs before adding it
             rename_added_chain(interactor)
             structure[0].add(interactor)
@@ -116,16 +119,16 @@ def get_rotran_matrix(ref_chain, mov_chain):
     return superimpos.rotran
 
 
-def is_clashing(structure, interactor):
+def is_clashing(structure, interactor, clashes_distance, ca_distance, number_clashes):
     # First, search for close CAs to then restrict a more exhaustive search to the closer chains
-    CA_str = [atom for atom in list(structure.get_atoms()) if atom.get_id() == "CA"]
-    CA_int = [atom for atom in list(interactor.get_atoms()) if atom.get_id() == "CA"]
+    CA_str = [atom for atom in list(structure.get_atoms()) if atom.get_id() == "CA" or atom.get_id() == "P"]
+    CA_int = [atom for atom in list(interactor.get_atoms()) if atom.get_id() == "CA" or atom.get_id() == "P"] 
 
     neighbors_search = NeighborSearch(CA_str)
     close_CA = list()
     # For each CA in the interactor, check if there are close CAs in the complex
     for atom in CA_int:
-        close_atoms = neighbors_search.search(atom.coord, 0.5*5)
+        close_atoms = neighbors_search.search(atom.coord, float(clashes_distance)*float(ca_distance))
         if len(close_atoms) > 0:
             close_CA.append(close_atoms)
 
@@ -143,12 +146,12 @@ def is_clashing(structure, interactor):
     clashes = 0
     # For each atom in the interactor, check if there are clashing atoms in the Complex
     for atom in int_atoms:
-        close_atoms = exhaustive_search.search(atom.coord, 0.5)
+        close_atoms = exhaustive_search.search(atom.coord, float(clashes_distance))
         clashes += len(close_atoms)
-        if clashes > 10:
+        if clashes > int(number_clashes):
             break
     # Don't consider clashing if there are less than a certain number of close atoms
-    if clashes < 10:
+    if clashes < int(number_clashes):
         return False
     else:
         return True
