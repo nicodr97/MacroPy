@@ -11,10 +11,12 @@ chain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # E
 
 def build_complex(out_dir,clashes_distance, ca_distance, number_clashes):
     # Get the ModelChain with the longest interactions list
-    first_modelchain = max(processed_chains, key = lambda x: len(x.interactions))
+    # first_modelchain = max(processed_chains, key = lambda x: len(x.interactions))
+    first_modelchain = choose_first_modelchain(processed_chains)
 
     # Initialize the complex Structure object with one of the PDBs of the ModelChain
-    first_chain = first_modelchain.interactions[0][0]
+    # first_chain = first_modelchain.interactions[0][0]
+    first_chain = first_modelchain.chain
     complex = first_chain.parent.parent.copy()
 
     # Process the first chains: change their ID and save the original full ID
@@ -40,7 +42,7 @@ def build_complex(out_dir,clashes_distance, ca_distance, number_clashes):
 
             # Add all the chains that interact that are present in the ModelChain, if they
             # don't clash with existing chains of the complex
-            add_modelchain_interactions(complex, chain, modelchain_obj,clashes_distance, 
+            add_modelchain_interactions(complex, chain, modelchain_obj,clashes_distance,
                                         ca_distance, number_clashes)
             # Change the xtra attribute of the chain whose interactions have been added so that
             # they aren't tried to be added again
@@ -67,6 +69,21 @@ def save_pdb(structure, out_dir):
     io.save(os.path.join(out_dir, "structures", pdb_name + ".cif"))
 
 
+def choose_first_modelchain(processed_chains):
+    for modelchain in processed_chains:
+        print( modelchain.id, len(set(get_chain_full_id(int[0]).split("_")[0].split(".")[-1] for int in modelchain.interactions)) )
+        if modelchain.chain.xtra["type"] == "nuc":
+            return max(processed_chains, key = lambda x: len(x.sequence))
+    return max(processed_chains, \
+    key = lambda x: len(set(get_chain_full_id(int[0]).split("_")[0] for int in x.interactions)))
+
+    # for modelchain in processed_chains:
+    #     print( modelchain.id, len(set(get_chain_full_id(int[0]).split("_")[0].split(".")[-1] for int in modelchain.interactions)) )
+    # return max(processed_chains, key = lambda x: len(set(get_chain_full_id(int[0]).split("_")[0] for int in x.interactions)))
+
+    # for int in interactions:
+    #     get_chain_full_id(int[0]).split("_")[0]
+    # len(set(get_chain_full_id(int[0]).split("_")[0] for int in x.interactions))
 
 def rename_added_chain(chain):
     # Get the new ID for the chain from the chain_ids list
@@ -80,7 +97,7 @@ def rename_added_chain(chain):
 
 
 
-def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_distance, 
+def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_distance,
                                 ca_distance, number_clashes):
     # For every interaction in the ModelChain
     for interaction in modelchain_obj.interactions:
@@ -91,7 +108,7 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
         # Apply the rotation-translation
         interactor.transform(mov[0], mov[1])
         # If its new atom coordinates won't clash with any existing atoms in the Complex, add it
-        if not is_clashing(structure, interactor, clashes_distance, ca_distance, 
+        if not is_clashing(structure, interactor, clashes_distance, ca_distance,
                             number_clashes):
             # Process the chain IDs before adding it
             rename_added_chain(interactor)
@@ -122,7 +139,7 @@ def get_rotran_matrix(ref_chain, mov_chain):
 def is_clashing(structure, interactor, clashes_distance, ca_distance, number_clashes):
     # First, search for close CAs to then restrict a more exhaustive search to the closer chains
     CA_str = [atom for atom in list(structure.get_atoms()) if atom.get_id() == "CA" or atom.get_id() == "P"]
-    CA_int = [atom for atom in list(interactor.get_atoms()) if atom.get_id() == "CA" or atom.get_id() == "P"] 
+    CA_int = [atom for atom in list(interactor.get_atoms()) if atom.get_id() == "CA" or atom.get_id() == "P"]
 
     neighbors_search = NeighborSearch(CA_str)
     close_CA = list()

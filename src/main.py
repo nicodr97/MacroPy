@@ -103,10 +103,12 @@ def add_chain_sequences(structure):
         first_residue = next(res for res in chain.get_residues() if res.get_id()[0].isspace())
         if first_residue.get_resname().startswith(" "):
             # DNA or RNA sequence with 1 letter ([-1] position of resname)
+            chain.xtra["type"] = "nuc"
             chain_sequence = "".join([res.get_resname()[-1] for res in chain.get_residues()
                                       if res.get_id()[0].isspace()])
         else:
             # Protein sequence
+            chain.xtra["type"] = "prot"
             chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
                                       for res in chain.get_residues() if res.get_id()[0].isspace()])
         chain.xtra["seq"] = chain_sequence
@@ -143,12 +145,12 @@ def main():
     parser.add_argument("-it", "--identity-threshold", default=0.95,
                         help="Minimum percentage of sequence similarity (between 0 and 1) "
                              "to consider two PDB chains the same")
+    parser.add_argument("-Rt", "--RMSD-threshold", default=2.5,
+                        help="Maximum RMSD value to consider two (similar) PDB chains the same")
     parser.add_argument("-ns", "--Neighbor-Search-distance", default=3.5,
                         help="Minimum distance between two PDB chains to consider that "
                              "they are actually interacting")
-    parser.add_argument("-Rt", "--RMSD-threshold", default=2,
-                        help="Maximum RMSD value to consider two (similar) PDB chains the same")
-    parser.add_argument("-cd", "--clashes-distance", default=0.5,
+    parser.add_argument("-cd", "--clashes-distance", default=1,
                         help="Maximum distance between two PDB interacting chains to consider that "
                              "they have clashes between them")
     parser.add_argument("-cad", "--CA-atoms-distance", default = 5,
@@ -170,7 +172,7 @@ def main():
 
     process_pdbs(pdbs, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
 
-    build_complex(args.output_directory, args.clashes_distance, args.CA_atoms_distance, 
+    build_complex(args.output_directory, args.clashes_distance, args.CA_atoms_distance,
                     args.number_clashes)
 
 

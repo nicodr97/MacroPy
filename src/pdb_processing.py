@@ -1,6 +1,7 @@
 
 from Bio.PDB import NeighborSearch, Superimposer
-from Bio.pairwise2 import align
+# from Bio.pairwise2 import align
+from Bio.Align import PairwiseAligner
 from string import ascii_uppercase
 
 get_chain_full_id = lambda chain: ":".join(chain.get_full_id()[0::2])
@@ -56,6 +57,7 @@ def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
 
     # For each PDB, go over its chains and create the ModelChains
     for chain in chain_list:
+        # if chain.xtra["type"] == "prot":
         # If this isn't the first PDB to be processed
         if len(processed_chains) > 0:
             # Check if there's any ModelChain that matches or not
@@ -67,6 +69,9 @@ def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
                 chain_id = get_chain_full_id(chain)
                 chain_to_model_chain[chain_id] = new_model_chain
             else:  # If there is, map the chain to the existing ModelChain
+                if len(chain.xtra["seq"]) > len(similar_chain_model.sequence):
+                    similar_chain_model.sequence = chain.xtra["seq"]
+                    similar_chain_model.chain = chain
                 chain_id = get_chain_full_id(chain)
                 chain_to_model_chain[chain_id] = similar_chain_model
         # If it is the first PDB to be processed
@@ -78,32 +83,78 @@ def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
             chain_id = get_chain_full_id(chain)
             chain_to_model_chain[chain_id] = new_model_chain
 
+        # elif chain.xtra["type"] == "nuc":
+        #     chain_seq = chain.xtra["seq"]
+        #     print(f"checking {get_chain_full_id(chain)}: {chain_seq}")
+        #     if len(processed_chains) > 0:
+        #         for modelchain_obj in (modchain for modchain in processed_chains if modchain.chain.xtra["type"] == "nuc"):
+        #             print(f"against modelchain: {modelchain_obj.sequence}")
+        #             if chain_seq[1:-1] in modelchain_obj.sequence:
+        #                 print(f"chain_seq {chain_seq} is inside modelchain.sequence {modelchain_obj.sequence}\n\n")
+        #                 chain_id = get_chain_full_id(chain)
+        #                 chain_to_model_chain[chain_id] = modelchain_obj
+        #                 break
+        #             elif modelchain_obj.sequence[1:-1] in chain_seq:
+        #                 print(f"modelchain.sequence {modelchain_obj.sequence} is inside chain_seq {chain_seq}\n\n")
+        #                 modelchain_obj.chain = chain
+        #                 modelchain_obj.sequence = chain_seq
+        #                 chain_id = get_chain_full_id(chain)
+        #                 chain_to_model_chain[chain_id] = modelchain_obj
+        #                 break
+        #     print("They are different\n\n")
+        #     new_model_chain = ModelChain(chain, chain_seq)
+        #     processed_chains.append(new_model_chain)
+        #     chain_id = get_chain_full_id(chain)
+        #     chain_to_model_chain[chain_id] = new_model_chain
+
+
 
 def get_similar_chain_model(chain, identity_threshold, rmsd_threshold):
-    # Get chain sequence from the xtra attribute
-    chain_seq = chain.xtra["seq"]
+    print(f"\nget similar model chain of: {chain.xtra['seq']}")
     # Compare it with each ModelChain that exists and return it if there's one that matches
     for model_chain in processed_chains:
         # If sequences are similar enough, superimpose the structures
-        if align_with_modelchain(chain_seq, model_chain, identity_threshold) \
-                and superimpose_with_modelchain(chain, model_chain, rmsd_threshold):
+        are_aligned, positions = align_with_modelchain(chain, model_chain, identity_threshold)
+        print(f"comparing with {model_chain.sequence}: is aligned {are_aligned} ({positions})")
+        if are_aligned and superimpose_with_modelchain(chain, model_chain, positions, rmsd_threshold):
             # If both are similar, return the ModelChain to which the chain will belong
             return model_chain
     # If there isn't any, return None
     return None
 
 
-def align_with_modelchain(chain_seq, model_chain, identity_threshold):
+def align_with_modelchain(chain, model_chain, identity_threshold):
+    # Get chain sequence from the xtra attribute
+    chain_seq = chain.xtra["seq"]
     # Compare the chain_seq with the sequence of a ModelChain
-    alignment = align.globalxx(chain_seq, model_chain.sequence, one_alignment_only=True)[0]
-    longest_length = max(len(chain_seq), len(model_chain.sequence))
-    return (alignment.score / longest_length) > float(identity_threshold)
+    aligner = PairwiseAligner()
+    aligner.mode = 'local'
+    aligner.match_score = 1
+    aligner.mismatch_score = -1
+    aligner.open_gap_score = -1
+    aligner.extend_gap_score = -1
+    alignment = aligner.align(chain_seq, model_chain.sequence)[0]
+
+    lengths = (len(chain_seq), len(model_chain.sequence))
+    length = max(lengths) if chain.xtra["type"] == "prot" else min(lengths)
+    are_aligned = (alignment.score / length) > float(identity_threshold)
+    return are_aligned, alignment.aligned
+
+    # alignment = align.localms(chain_seq, model_chain.sequence, 1, -1, -1, -1, one_alignment_only=True)[0]
+    # longest_length = max(len(chain_seq), len(model_chain.sequence))
+    # return (alignment.score / longest_length) > float(identity_threshold)
 
 
-def superimpose_with_modelchain(chain, model_chain, rmsd_threshold):
+def superimpose_with_modelchain(chain, model_chain, positions, rmsd_threshold):
+    chain_idx = positions[0][0]
+    chain_res = list(chain.get_residues())[chain_idx[0]:chain_idx[1]]
+    chain_atoms = [atom for res in chain_res for atom in list(res.get_atoms())]
+    model_idx = positions[1][0]
+    model_res = list(model_chain.chain.get_residues())[model_idx[0]:model_idx[1]]
+    model_atoms = [atom for res in model_res for atom in list(res.get_atoms())]
     # Calculate RMSD between the homologous chains
-    chain_atoms = list(chain.get_atoms())
-    model_atoms = list(model_chain.chain.get_atoms())
+    # chain_atoms = list(chain.get_atoms())
+    # model_atoms = list(model_chain.chain.get_atoms())
     # Check if fixed and moving atoms lists have different size
     if len(model_atoms) != len(chain_atoms):
         # Get the same amount of atoms
@@ -117,6 +168,9 @@ def superimpose_with_modelchain(chain, model_chain, rmsd_threshold):
     super_imposer = Superimposer()
     super_imposer.set_atoms(model_atoms, chain_atoms)
     rmsd = super_imposer.rms
+    if chain.xtra["type"] == "nuc":
+        rmsd = rmsd/2
+    print(f"{rmsd}")
 
     return rmsd < float(rmsd_threshold)
 
