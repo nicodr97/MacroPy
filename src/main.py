@@ -11,7 +11,7 @@ from reconstruction import build_complex
 pdbs = dict()
 
 
-def parse_input_directory(path):
+def parse_input_directory(path, stoichiometry_path):
     # Check if input directory is a directory
     input_dir_error_msg = "Error reading input directory. "
     if not os.path.isdir(path):
@@ -21,11 +21,13 @@ def parse_input_directory(path):
     file_names = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
                   and not f.startswith('.')]
 
+    all_chains = set()
+
     # Check each file
     for file_name in file_names:
         # Error messages
         file_error_msg = f"Error in file '{file_name}': "
-        wrong_naming_msg = "wrong file naming structure. It should be as follows: " \
+        wrong_naming_msg = "wrong file naming structure. It should be as follows\n " \
                            "<PDB name>_<chain1>_<chain2>.pdb(.gz) or " \
                            "<Uniprot ID>.<DNA or RNA>.<PDB name>_<chain1>_<chain2>.pdb(.gz)"
 
@@ -43,6 +45,7 @@ def parse_input_directory(path):
                 len(file_name_parts) == 3 and not has_compressed_format) or (
                 len(file_name_parts) == 4 and not has_pdb_format) or (
                 len(file_name_parts) == 5 and not has_compressed_format):
+
             log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
             sys.exit(1)
 
@@ -66,7 +69,7 @@ def parse_input_directory(path):
             chains_in_file_name = [chain_letter for chain_letter in "".join(chains_in_file_name)]
 
         if not pdb_name.isalnum():
-            log.error(input_dir_error_msg + file_error_msg + ": PDB name must be alphanumeric")
+            log.error(input_dir_error_msg + file_error_msg + "PDB name must be alphanumeric")
             sys.exit(1)
 
         # Process PDB
@@ -78,8 +81,25 @@ def parse_input_directory(path):
         chains = [c.get_id() for c in structure.get_chains()]
         for chain in chains_in_file_name:
             if chain not in chains:
-                log.error(input_dir_error_msg + file_error_msg + f": chain {chain} not present"
+                log.error(input_dir_error_msg + file_error_msg + f"chain {chain} not present"
                                                                  " in the structure")
+                sys.exit(1)
+            else:
+                all_chains.add(chain)
+                chains.remove(chain)
+
+    if stoichiometry_path:
+        with open(stoichiometry_path, 'r') as stoich_file:
+            lines = stoich_file.readlines()
+            for line in lines:
+                if not line[0].isalpha() or not line[2].isnumeric() or line[1] != ":":
+                    log.error(f"Error in stoichiometry file: it should be as follows\n"
+                              "<chain1>:<number>")
+                    sys.exit(1)
+                if line[0] not in all_chains:
+                    log.error(f"Error in stoichiometry file: chain {line[0]} is not present in any"
+                              " structure")
+                    sys.exit(1)
 
     return 0
 
@@ -138,7 +158,7 @@ def main():
     parser.add_argument("-f", "--force", action="store_true", default=False,
                         help="Force overwriting if the output directory already exists")
     parser.add_argument("-s", "--stoichiometry",
-                        help="(Directory)/File containing the stoichiometry (file)")
+                        help="File containing the stoichiometry")
     parser.add_argument("-v", "--verbose", action="store_true", default=False,
                         help="Program log will be printed to standard error while running")
     parser.add_argument("-it", "--identity-threshold", default=0.95,
@@ -166,7 +186,7 @@ def main():
         log.basicConfig(format="%(message)s", level=log.ERROR)
         log.captureWarnings(True)
 
-    parse_input_directory(args.input_directory)
+    parse_input_directory(args.input_directory, args.stoichiometry)
     parse_output_directory(args.output_directory, args.force)
 
     process_pdbs(pdbs, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
