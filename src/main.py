@@ -5,8 +5,8 @@ import sys
 import logging as log
 from Bio.PDB import PDBParser
 from Bio.Data.IUPACData import protein_letters_3to1
-from pdb_processing import *
-from reconstruction import *
+from pdb_processing import process_pdbs
+from reconstruction import build_complex
 
 pdbs = dict()
 
@@ -43,7 +43,6 @@ def parse_input_directory(path):
                 len(file_name_parts) == 3 and not has_compressed_format) or (
                 len(file_name_parts) == 4 and not has_pdb_format) or (
                 len(file_name_parts) == 5 and not has_compressed_format):
-
             log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
             sys.exit(1)
 
@@ -153,12 +152,12 @@ def main():
     parser.add_argument("-cd", "--clashes-distance", default=1,
                         help="Maximum distance between two PDB interacting chains to consider that "
                              "they have clashes between them")
-    parser.add_argument("-cad", "--CA-atoms-distance", default = 5,
+    parser.add_argument("-cad", "--CA-atoms-distance", default=5,
                         help="Maximum distance between Alpha carbons atoms of two PDB interacting "
                              "chains to consider they have clashes between them")
-    parser.add_argument("-nc", "--number-clashes", default = 10,
-                        help="Maximum number of close atoms to consider two PDB interacting chains can "
-                             "have a clash")
+    parser.add_argument("-nc", "--number-clashes", default=10,
+                        help="Maximum number of close atoms to consider two PDB interacting "
+                             "chains can have a clash")
     args = parser.parse_args()
 
     if args.verbose:
@@ -173,7 +172,7 @@ def main():
     process_pdbs(pdbs, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
 
     build_complex(args.output_directory, args.clashes_distance, args.CA_atoms_distance,
-                    args.number_clashes)
+                  args.number_clashes)
 
 
 if __name__ == "__main__":
