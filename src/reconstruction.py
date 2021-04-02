@@ -21,6 +21,7 @@ def build_complex(out_dir, clashes_distance, ca_distance, number_clashes):
 
     # Process the first chains: change their ID and save the original full ID
     for chain in macro_complex.get_chains():
+        log.error(f"Added chain {chain.get_id()}")
         rename_added_chain(chain)
 
     chain_number_change = 1
@@ -29,7 +30,7 @@ def build_complex(out_dir, clashes_distance, ca_distance, number_clashes):
         # Make a list of the chains in the complex and save the number of chains
         chain_list = list(macro_complex.get_chains())
         chain_number = len(chain_list)
-        log.info("Chains before adding:", chain_number)
+        log.info(f"Chains before adding: {chain_number}")
 
         # For each chain in the complex whose interactions haven't already been added (not
         # "processed"), add all the interactions saved in its corresponding ModelChain
@@ -38,7 +39,7 @@ def build_complex(out_dir, clashes_distance, ca_distance, number_clashes):
             # attribute and querying the chain_to_model_chain dict for the ModelChain object
             chain_full_id = chain.xtra["full_id"]
             modelchain_obj = chain_to_model_chain[chain_full_id]
-            log.info("Adding interactions of:", chain_full_id, len(modelchain_obj.interactions))
+            log.info(f"Adding interactions of: {chain_full_id} {len(modelchain_obj.interactions)}")
 
             # Add all the chains that interact that are present in the ModelChain, if they
             # don't clash with existing chains of the complex
@@ -51,7 +52,7 @@ def build_complex(out_dir, clashes_distance, ca_distance, number_clashes):
         # Get the new number of chains in the complex to keep adding interactors if new chains have
         # been added or stop if none have been added or we have reached the max number of chains
         new_chain_number = len(list(macro_complex.get_chains()))
-        log.info("Chains after adding:", new_chain_number)
+        log.info(f"Chains after adding: {new_chain_number}")
         chain_number_change = new_chain_number - chain_number
 
     # Finally, save the PDB of the Complex
