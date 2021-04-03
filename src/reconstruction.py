@@ -21,7 +21,6 @@ def build_complex(out_dir, clashes_distance, ca_distance, number_clashes):
 
     # Process the first chains: change their ID and save the original full ID
     for chain in macro_complex.get_chains():
-        log.error(f"Added chain {chain.get_id()}")
         rename_added_chain(chain)
 
     chain_number_change = 1
