@@ -1,27 +1,32 @@
 import os
+import sys
 import logging as log
 from pdb_processing import processed_chains, chain_to_model_chain, get_chain_full_id, \
-    get_atom_chains_with_same_length
-from Bio.PDB import Superimposer, MMCIFIO, NeighborSearch
+    get_atom_chains_with_same_length, model_chain_to_chains
+from Bio.PDB import Superimposer, MMCIFIO, NeighborSearch, Structure, Model
 from string import ascii_letters
 
-chain_ids = list(ascii_letters)  # List of A-Z and a-z to use as the chains' new ids
+chain_ids = list(ascii_letters) + [str(x) for x in range(150)]  # List of A-Z, a-z and numbers to
+# use as the chains' new ids
 MAX_CHAINS = 180
+current_stoich_dict = dict()  # Count the stoichiometry of each chain in the complex
 
 
-def build_complex(out_dir, clashes_distance, ca_distance, number_clashes):
+def build_complex(out_dir, clashes_distance, ca_distance, number_clashes, stoich_dict):
     # Get the ModelChain with the longest interactions list
     # first_modelchain = max(processed_chains, key = lambda x: len(x.interactions))
-    first_modelchain = choose_first_modelchain()
+    first_modelchain = choose_first_modelchain(stoich_dict)
 
     # Initialize the complex Structure object with one of the PDBs of the ModelChain
-    # first_chain = first_modelchain.interactions[0][0]
     first_chain = first_modelchain.chain
-    macro_complex = first_chain.parent.parent.copy()
+    macro_complex = Structure.Structure(first_chain.parent.parent.get_id())
+    macro_complex.add(Model.Model(0))
+    macro_complex[0].add(first_chain.copy())
+    if stoich_dict:
+        current_stoich_dict[get_common_chain_id(stoich_dict, first_chain)] = 1
 
-    # Process the first chains: change their ID and save the original full ID
-    for chain in macro_complex.get_chains():
-        rename_added_chain(chain)
+    # Process the first chain: change its ID and save the original full ID
+    rename_added_chain(macro_complex[0][first_chain.get_id()])
 
     chain_number_change = 1
     # Keep trying to add new interactions until no new chains are added
@@ -43,7 +48,7 @@ def build_complex(out_dir, clashes_distance, ca_distance, number_clashes):
             # Add all the chains that interact that are present in the ModelChain, if they
             # don't clash with existing chains of the complex
             add_modelchain_interactions(macro_complex, chain, modelchain_obj, clashes_distance,
-                                        ca_distance, number_clashes)
+                                        ca_distance, number_clashes, stoich_dict)
             # Change the xtra attribute of the chain whose interactions have been added so that
             # they aren't tried to be added again
             chain.xtra["processed"] = True
@@ -65,11 +70,13 @@ def save_pdb(structure, out_dir):
     io.save(os.path.join(out_dir, "structures", pdb_name + ".cif"))
 
 
-def choose_first_modelchain():
+def choose_first_modelchain(stoich_dict):
     if any(model_chain.chain.xtra["type"] == "nuc" for model_chain in processed_chains):
         return max(processed_chains, key=lambda x: len(x.sequence))
 
-    return max(processed_chains, key=lambda x: len(set(get_chain_full_id(inter[0]).split("_")[0]
+    return max([model_chain for model_chain in processed_chains
+                if not stoich_dict or check_stoichiometry(stoich_dict, model_chain.chain)],
+               key=lambda x: len(set(get_chain_full_id(inter[0]).split("_")[0]
                                                        for inter in x.interactions)))
 
 
@@ -84,17 +91,30 @@ def rename_added_chain(chain):
 
 
 def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_distance,
-                                ca_distance, number_clashes):
+                                ca_distance, number_clashes, stoich_dict):
     # For every interaction in the ModelChain
     for interaction in modelchain_obj.interactions:
-        # Get the rotation-translation matrix
-        mov = get_rotran_matrix(ref_chain, interaction[0])
+        if not stoich_dict or check_stoichiometry(stoich_dict, interaction[-1]):
         # Make a copy of the chain to add it to the Complex being built
         interactor = interaction[-1].copy()
+
+            if stoich_dict:
+                common_chain_id = get_common_chain_id(stoich_dict, interactor)
+                if common_chain_id in current_stoich_dict and current_stoich_dict[
+                    common_chain_id] >= stoich_dict[common_chain_id]:
+                    # Skip interaction if the stoichiometry is exceeded
+                    continue
+
+            # Get the rotation-translation matrix
+            mov = get_rotran_matrix(ref_chain, interaction[0])
         # Apply the rotation-translation
         interactor.transform(mov[0], mov[1])
         # If its new atom coordinates won't clash with any existing atoms in the Complex, add it
-        if not is_clashing(structure, interactor, clashes_distance, ca_distance, number_clashes):
+            if not is_clashing(structure, interactor, clashes_distance, ca_distance,
+                               number_clashes):
+                if stoich_dict:
+                    current_stoich_dict[common_chain_id] = current_stoich_dict.setdefault(
+                        common_chain_id, 0) + 1
             # Process the chain IDs before adding it
             rename_added_chain(interactor)
             structure[0].add(interactor)
@@ -149,3 +169,23 @@ def is_clashing(structure, interactor, clashes_distance, ca_distance, number_cla
             return True
     # Don't consider clashing if there are less than a certain number of close atoms
     return False
+
+
+# Check if the chain is present in the stoichiometry
+def check_stoichiometry(stoich_dict, chain):
+    model_chain = chain_to_model_chain[get_chain_full_id(chain)]
+    chains = model_chain_to_chains[model_chain.id]
+    return any([chain in stoich_dict for chain in chains])
+
+
+# Get the chain id used in the stoichiometry to use as common chain id
+def get_common_chain_id(stoich_dict, chain):
+    model_chain = chain_to_model_chain[get_chain_full_id(chain)]
+    chains = model_chain_to_chains[model_chain.id]
+    common_chain_id = [chain for chain in chains if chain in stoich_dict]
+    if len(common_chain_id) > 1:
+        log.error(f"Error with stoichiometry: {common_chain_id} are the same chains but different "
+                  "lines in the stoichiometry file")
+        sys.exit(1)
+
+    return common_chain_id[0]

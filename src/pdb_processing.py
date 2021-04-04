@@ -6,6 +6,7 @@ from string import ascii_letters
 
 processed_chains = list()  # List to store the ModelChains that are created
 chain_to_model_chain = dict()  # Dictionary to map every chain in the input files to a ModelChain
+model_chain_to_chains = dict()
 modelchain_ids = list(ascii_letters)  # List of A-Z and a-z to use as ModelChain custom ids
 
 
@@ -48,11 +49,8 @@ def process_pdbs(pdb_dict, identity_threshold, ns_threshold, rmsd_threshold):
 
 
 def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
-    # Make a list of Biopython chain objects from the Structure
-    chain_list = list(structure.get_chains())
-
     # For each PDB, go over its chains and create the ModelChains
-    for chain in chain_list:
+    for chain in structure.get_chains():
         # If this isn't the first PDB to be processed
         if len(processed_chains) > 0:
             # Check if there's any ModelChain that matches or not
@@ -62,12 +60,14 @@ def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
                 processed_chains.append(new_model_chain)
                 chain_id = get_chain_full_id(chain)
                 chain_to_model_chain[chain_id] = new_model_chain
+                model_chain_to_chains[new_model_chain.id] = set(chain.get_id())
             else:  # If there is, map the chain to the existing ModelChain
                 if len(chain.xtra["seq"]) > len(similar_chain_model.sequence):
                     similar_chain_model.sequence = chain.xtra["seq"]
                     similar_chain_model.chain = chain
                 chain_id = get_chain_full_id(chain)
                 chain_to_model_chain[chain_id] = similar_chain_model
+                model_chain_to_chains[similar_chain_model.id].add(chain.get_id())
         # If it is the first PDB to be processed
         else:
             # Create the first ModelChain
@@ -75,6 +75,7 @@ def initialize_model_chains(structure, identity_threshold, rmsd_threshold):
             processed_chains.append(new_model_chain)
             chain_id = get_chain_full_id(chain)
             chain_to_model_chain[chain_id] = new_model_chain
+            model_chain_to_chains[new_model_chain.id] = set(chain.get_id())
 
 
 def get_similar_chain_model(chain, identity_threshold, rmsd_threshold):

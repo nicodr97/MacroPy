@@ -9,6 +9,7 @@ from pdb_processing import process_pdbs
 from reconstruction import build_complex
 
 pdbs = dict()
+stoich_dict = dict()
 
 
 def parse_input_directory(path, stoichiometry_path):
@@ -92,14 +93,16 @@ def parse_input_directory(path, stoichiometry_path):
         with open(stoichiometry_path, 'r') as stoich_file:
             lines = stoich_file.readlines()
             for line in lines:
-                if not line[0].isalpha() or not line[2].isnumeric() or line[1] != ":":
+                if not line[0].isalpha() or not line[2:].strip().isnumeric() or line[1] != ":":
                     log.error(f"Error in stoichiometry file: it should be as follows\n"
-                              "<chain1>:<number>")
+                              "<chain>:<number>")
                     sys.exit(1)
                 if line[0] not in all_chains:
                     log.error(f"Error in stoichiometry file: chain {line[0]} is not present in any"
                               " structure")
                     sys.exit(1)
+
+                stoich_dict[line[0]] = int(line[2:])
 
     return 0
 
@@ -192,7 +195,7 @@ def main():
     process_pdbs(pdbs, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
 
     build_complex(args.output_directory, args.clashes_distance, args.CA_atoms_distance,
-                  args.number_clashes)
+                  args.number_clashes, stoich_dict)
 
 
 if __name__ == "__main__":
