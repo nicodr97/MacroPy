@@ -55,6 +55,9 @@ def parse_input_directory(path, stoichiometry_path):
 
         structure_name = file_name_parts_no_ext[-1]
         structure_name_parts = structure_name.split(sep="_")
+        if len(structure_name_parts) != 3:
+            log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
+            sys.exit(1)
         pdb_name = structure_name_parts[0]
         chains_in_file_name = structure_name_parts[1:]
 
