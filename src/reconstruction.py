@@ -71,8 +71,8 @@ def save_pdb(structure, out_dir):
 
 
 def choose_first_modelchain(stoich_dict):
-    if any(model_chain.chain.xtra["type"] == "nuc" for model_chain in processed_chains):
-        return max(processed_chains, key=lambda x: len(x.sequence))
+    # if any(model_chain.chain.xtra["type"] == "nuc" for model_chain in processed_chains):
+    #     return max(filter(lambda x: x.chain.xtra["type"] == "nuc", processed_chains), key=lambda x: len(x.sequence))
 
     return max([model_chain for model_chain in processed_chains
                 if not stoich_dict or check_stoichiometry(stoich_dict, model_chain.chain)],
@@ -96,7 +96,7 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
     for interaction in modelchain_obj.interactions:
         if not stoich_dict or check_stoichiometry(stoich_dict, interaction[-1]):
         # Make a copy of the chain to add it to the Complex being built
-        interactor = interaction[-1].copy()
+            interactor = interaction[-1].copy()
 
             if stoich_dict:
                 common_chain_id = get_common_chain_id(stoich_dict, interactor)
@@ -108,7 +108,7 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
             # Get the rotation-translation matrix
             mov = get_rotran_matrix(ref_chain, interaction[0])
         # Apply the rotation-translation
-        interactor.transform(mov[0], mov[1])
+            interactor.transform(mov[0], mov[1])
         # If its new atom coordinates won't clash with any existing atoms in the Complex, add it
             if not is_clashing(structure, interactor, clashes_distance, ca_distance,
                                number_clashes):
@@ -116,8 +116,8 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
                     current_stoich_dict[common_chain_id] = current_stoich_dict.setdefault(
                         common_chain_id, 0) + 1
             # Process the chain IDs before adding it
-            rename_added_chain(interactor)
-            structure[0].add(interactor)
+                rename_added_chain(interactor)
+                structure[0].add(interactor)
 
 
 def get_rotran_matrix(ref_chain, mov_chain):
