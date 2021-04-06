@@ -1,13 +1,15 @@
 import logging as log
 from Bio.PDB import NeighborSearch, Superimposer
 from Bio.Align import PairwiseAligner
-from string import ascii_letters
+from string import ascii_uppercase
 
 
 processed_chains = list()  # List to store the ModelChains that are created
 chain_to_model_chain = dict()  # Dictionary to map every chain in the input files to a ModelChain
 model_chain_to_chains = dict()
-modelchain_ids = list(ascii_letters)  # List of A-Z and a-z to use as ModelChain custom ids
+
+letter_list = list(ascii_uppercase)  # List of A-Z to use as ModelChain custom ids
+modelchain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # Large list A-ZZ
 
 
 # Definition of the class ModelChain

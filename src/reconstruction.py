@@ -4,10 +4,10 @@ import logging as log
 from pdb_processing import processed_chains, chain_to_model_chain, get_chain_full_id, \
     get_atom_chains_with_same_length, model_chain_to_chains
 from Bio.PDB import Superimposer, MMCIFIO, NeighborSearch, Structure, Model
-from string import ascii_letters
+from string import ascii_uppercase
 
-chain_ids = list(ascii_letters) + [str(x) for x in range(150)]  # List of A-Z, a-z and numbers to
-# use as the chains' new ids
+letter_list = list(ascii_uppercase)  # List of A-Z to use as the chains' new ids
+chain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # Extended list A-ZZ
 MAX_CHAINS = 180
 current_stoich_dict = dict()  # Count the stoichiometry of each chain in the complex
 
