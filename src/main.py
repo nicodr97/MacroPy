@@ -8,7 +8,7 @@ from Bio.Data.IUPACData import protein_letters_3to1
 from pdb_processing import process_pdbs
 from reconstruction import build_complex
 
-pdbs = dict()
+pdb_chains = list()
 stoich_dict = dict()
 
 
@@ -61,16 +61,14 @@ def parse_input_directory(path, stoichiometry_path):
         pdb_name = structure_name_parts[0]
         chains_in_file_name = structure_name_parts[1:]
 
-        # Only DNA has double chain
-        '''
-        if has_prot_dna_format_len and file_name_parts_no_ext[1] == "DNA":
-            split_double_chain = list(chains_in_file_name[1])
-            chains_in_file_name[1] = split_double_chain[0]
-            chains_in_file_name.append(split_double_chain[1])
-        '''
-
-        if has_prot_dna_format_len:  # Don't check if [1] is DNA because it can be RNA??
+        if has_prot_dna_format_len:
             chains_in_file_name = [chain_letter for chain_letter in "".join(chains_in_file_name)]
+
+        if len(pdb_name) != 4:
+            log.error(input_dir_error_msg + file_error_msg + "PDB name must have 4 characters:\n" \
+                                "<PDB name>_<chain1>_<chain2>.pdb(.gz) or " \
+                                "<Uniprot ID>.<DNA or RNA>.<PDB name>_<chain1>_<chain2>.pdb(.gz)")
+            sys.exit(1)
 
         if not pdb_name.isalnum():
             log.error(input_dir_error_msg + file_error_msg + "PDB name must be alphanumeric")
@@ -78,8 +76,11 @@ def parse_input_directory(path, stoichiometry_path):
 
         # Process PDB
         file_name_no_ext = ".".join(file_name_parts_no_ext)
-        pdbs[file_name_no_ext] = get_pdb_structure(os.path.join(path, file_name), file_name_no_ext)
-        structure = pdbs[file_name_no_ext]
+        structure = get_pdb_structure(os.path.join(path, file_name), file_name_no_ext)
+
+        # Add chains to the pdb_chains list
+        for chain in structure.get_chains():
+            pdb_chains.append(chain)
 
         # Check that the chains in the file name are in the PDB
         chains = [c.get_id() for c in structure.get_chains()]
@@ -110,16 +111,18 @@ def parse_input_directory(path, stoichiometry_path):
     return 0
 
 
+
 def get_pdb_structure(file_path, pdb_id):
     if file_path.split(sep=".")[-1] == "gz":
         with gzip.open(file_path, 'rt') as pdb_file:
-            structure = PDBParser().get_structure(pdb_id, pdb_file)
+            structure = PDBParser(QUIET=True).get_structure(pdb_id, pdb_file)
             add_chain_sequences(structure)
             return structure
     else:
-        structure = PDBParser().get_structure(pdb_id, file_path)
+        structure = PDBParser(QUIET=True).get_structure(pdb_id, file_path)
         add_chain_sequences(structure)
         return structure
+
 
 
 def add_chain_sequences(structure):
@@ -137,6 +140,7 @@ def add_chain_sequences(structure):
             chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
                                       for res in chain.get_residues() if res.get_id()[0].isspace()])
         chain.xtra["seq"] = chain_sequence
+
 
 
 def parse_output_directory(path_dir, force):
@@ -167,6 +171,8 @@ def main():
                         help="File containing the stoichiometry")
     parser.add_argument("-v", "--verbose", action="store_true", default=False,
                         help="Program log will be printed to standard error while running")
+    parser.add_argument("-mc", "--max-chains", default=180,
+                        help="Number of chains of the complex at which to stop adding new chains")
     parser.add_argument("-it", "--identity-threshold", default=0.95,
                         help="Minimum percentage of sequence similarity (between 0 and 1) "
                              "to consider two PDB chains the same")
@@ -175,15 +181,12 @@ def main():
     parser.add_argument("-ns", "--Neighbor-Search-distance", default=3.5,
                         help="Minimum distance between two PDB chains to consider that "
                              "they are actually interacting")
-    parser.add_argument("-cd", "--clashes-distance", default=1,
-                        help="Maximum distance between two PDB interacting chains to consider that "
+    parser.add_argument("-cd", "--clashes-distance", default=1.5,
+                        help="Maximum distance between atoms of two chains to consider that "
                              "they have clashes between them")
-    parser.add_argument("-cad", "--CA-atoms-distance", default=5,
-                        help="Maximum distance between Alpha carbons atoms of two PDB interacting "
-                             "chains to consider they have clashes between them")
     parser.add_argument("-nc", "--number-clashes", default=10,
-                        help="Maximum number of close atoms to consider two PDB interacting "
-                             "chains can have a clash")
+                        help="Maximum number of close atoms to consider that two chains "
+                             " are clashing")
     args = parser.parse_args()
 
     if args.verbose:
@@ -195,9 +198,9 @@ def main():
     parse_input_directory(args.input_directory, args.stoichiometry)
     parse_output_directory(args.output_directory, args.force)
 
-    process_pdbs(pdbs, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
+    process_pdbs(pdb_chains, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
 
-    build_complex(args.output_directory, args.clashes_distance, args.CA_atoms_distance,
+    build_complex(args.output_directory, int(args.max_chains), args.clashes_distance,
                   args.number_clashes, stoich_dict)
 
 
