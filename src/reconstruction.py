@@ -58,6 +58,9 @@ def build_complex(out_dir, max_chains, clashes_distance, number_clashes, stoich_
         log.info(f"Chains after adding: {new_chain_number}")
         chain_number_change = new_chain_number - chain_number
 
+    if current_stoich_dict != stoich_dict:
+        log.error("Stoichiometry not satisfied")
+        sys.exit(1)
     # Finally, save the PDB of the Complex
     save_pdb(macro_complex, out_dir, complex_name)
 
@@ -68,7 +71,7 @@ def choose_first_modelchain(stoich_dict):
         return max(filter(lambda x: x.chain.xtra["type"] == "nuc", processed_chains), key=lambda x: len(x.sequence))
     # If there isn't, use the ModelChain with the most number of interactions from different PDBs
     return max([model_chain for model_chain in processed_chains
-                if not stoich_dict or check_stoichiometry(stoich_dict, model_chain.chain)],
+                if not stoich_dict or is_in_stoichiometry(stoich_dict, model_chain.chain)],
                key=lambda x: len(set(get_chain_full_id(inter[0]).split("_")[0]
                                                        for inter in x.interactions)))
 
@@ -81,7 +84,7 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
     # acid, if the ModelChain is of "type" nucleic and it has a complementary strand)
     for interaction in ordered_interactions(modelchain_obj, ref_chain):
         # Continue if there isn't a stoichiometry file or, if there is, if the chain is in it
-        if not stoich_dict or check_stoichiometry(stoich_dict, interaction[-1]):
+        if not stoich_dict or is_in_stoichiometry(stoich_dict, interaction[-1]):
             # Make a copy of the chain to add it to the Complex being built
             interactor = interaction[-1].copy()
 
@@ -106,6 +109,7 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
                 interactor.xtra["full_id"] = get_chain_full_id(interactor)
                 interactor.id = chain_ids.pop(0)
                 structure[0].add(interactor)
+
 
 def ordered_interactions(modelchain_obj, ref_chain):
     # If the chain to which we are adding interactions is a nucleic acid
@@ -170,7 +174,7 @@ def is_clashing(structure, interactor, clashes_distance, number_clashes):
 
 
 # Check if the chain is present in the stoichiometry
-def check_stoichiometry(stoich_dict, chain):
+def is_in_stoichiometry(stoich_dict, chain):
     model_chain = chain_to_model_chain[get_chain_full_id(chain)]
     chains = model_chain_to_chains[model_chain.id]
     return any([chain in stoich_dict for chain in chains])
@@ -178,6 +182,8 @@ def check_stoichiometry(stoich_dict, chain):
 
 # Get the chain id used in the stoichiometry to use as common chain id
 def get_common_chain_id(stoich_dict, chain):
+    if chain.get_id() in stoich_dict:
+        return chain.get_id()
     model_chain = chain_to_model_chain[get_chain_full_id(chain)]
     chains = model_chain_to_chains[model_chain.id]
     common_chain_id = [chain for chain in chains if chain in stoich_dict]
