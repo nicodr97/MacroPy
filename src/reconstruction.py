@@ -10,7 +10,7 @@ chain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # E
 current_stoich_dict = dict()  # Count the stoichiometry of each chain in the complex
 
 
-def build_complex(out_dir, max_chains, clashes_distance, number_clashes, stoich_dict):
+def build_complex(out_dir, max_chains, clashes_distance, number_clashes, stoich_dict, complex_name):
     first_modelchain = choose_first_modelchain(stoich_dict)
 
     # Initialize the complex Structure object with one of the PDBs of the ModelChain
@@ -59,7 +59,7 @@ def build_complex(out_dir, max_chains, clashes_distance, number_clashes, stoich_
         chain_number_change = new_chain_number - chain_number
 
     # Finally, save the PDB of the Complex
-    save_pdb(macro_complex, out_dir)
+    save_pdb(macro_complex, out_dir, complex_name)
 
 
 def choose_first_modelchain(stoich_dict):

@@ -70,8 +70,7 @@ def same_number_of_atoms(atom_chain1, atom_chain2):
 
 
 
-def save_pdb(structure, out_dir):
+def save_pdb(structure, out_dir, complex_name):
     io = MMCIFIO()
     io.set_structure(structure)
-    pdb_name = "Complex"
-    io.save(os.path.join(out_dir, "structures", pdb_name + ".cif"))
+    io.save(os.path.join(out_dir, "structures", complex_name + ".cif"))

@@ -165,6 +165,8 @@ def main():
                         help="Directory containing the input structure files")
     parser.add_argument("-o", "--output-directory", required=True,
                         help="Create the output directories")
+    parser.add_argument("-c", "--complex-name", default="Complex",
+                        help="Reconstructed complex name")
     parser.add_argument("-f", "--force", action="store_true", default=False,
                         help="Force overwriting if the output directory already exists")
     parser.add_argument("-s", "--stoichiometry",
@@ -201,7 +203,7 @@ def main():
     process_pdbs(pdb_chains, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
 
     build_complex(args.output_directory, int(args.max_chains), args.clashes_distance,
-                  args.number_clashes, stoich_dict)
+                  args.number_clashes, stoich_dict, args.complex_name)
 
 
 if __name__ == "__main__":
