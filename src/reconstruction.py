@@ -7,7 +7,8 @@ from pdb_tools import *
 
 letter_list = list(ascii_uppercase)  # List of A-Z to use as the chains' new ids
 chain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # Extended list A-ZZ
-current_stoich_dict = dict()  # Count the stoichiometry of each chain in the complex
+current_stoich_dict = dict()  # Count the stoichiometry in the reconstructed complex
+current_stoich_dict_by_prefix = dict()  # Count the chain stoichiometry when the stoichiometry file has prefixes as ids
 
 
 def build_complex(out_dir, max_chains, clashes_distance, number_clashes, stoich_dict, complex_name):
@@ -22,7 +23,7 @@ def build_complex(out_dir, max_chains, clashes_distance, number_clashes, stoich_
     macro_complex[0][first_chain.get_id()].id = chain_ids.pop(0)
 
     if stoich_dict:
-        current_stoich_dict[get_common_chain_id(stoich_dict, first_chain)] = 1
+        update_stoichiometry(stoich_dict, first_chain)
 
     # Process the first chain: change its ID and save the original full ID
     # chain = macro_complex[0][first_chain.get_id()]
@@ -67,8 +68,12 @@ def build_complex(out_dir, max_chains, clashes_distance, number_clashes, stoich_
 
 def choose_first_modelchain(stoich_dict):
     # If there's any nucleic acid chain, use the ModelChain with the longest sequence first
-    if any(model_chain.chain.xtra["type"] == "nuc" for model_chain in processed_chains):
-        return max(filter(lambda x: x.chain.xtra["type"] == "nuc", processed_chains), key=lambda x: len(x.sequence))
+    if any(model_chain.chain.xtra["type"] == "nuc" and (
+            not stoich_dict or is_in_stoichiometry(stoich_dict, model_chain.chain)) for model_chain
+           in processed_chains):
+        return max(filter(lambda x: x.chain.xtra["type"] == "nuc" and (
+                not stoich_dict or is_in_stoichiometry(stoich_dict, x.chain)),
+                          processed_chains), key=lambda x: len(x.sequence))
     # If there isn't, use the ModelChain with the most number of interactions from different PDBs
     return max([model_chain for model_chain in processed_chains
                 if not stoich_dict or is_in_stoichiometry(stoich_dict, model_chain.chain)],
@@ -103,8 +108,7 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
             if not is_clashing(structure, interactor, clashes_distance, number_clashes):
                 # If it's added and there's a stoichiometry file, add it to the count
                 if stoich_dict:
-                    current_stoich_dict[common_chain_id] = current_stoich_dict.setdefault(
-                        common_chain_id, 0) + 1
+                    update_stoichiometry(stoich_dict, interaction[-1])
                 # Process the chain IDs before adding it
                 interactor.xtra["full_id"] = get_chain_full_id(interactor)
                 interactor.id = chain_ids.pop(0)
@@ -175,6 +179,10 @@ def is_clashing(structure, interactor, clashes_distance, number_clashes):
 
 # Check if the chain is present in the stoichiometry
 def is_in_stoichiometry(stoich_dict, chain):
+    prefix_len = 6
+    if any(len(stoich_id) == prefix_len for stoich_id in stoich_dict.keys()):
+        stoich_id = get_chain_full_id(chain).split(".")[0]
+        return stoich_id in stoich_dict
     model_chain = chain_to_model_chain[get_chain_full_id(chain)]
     chains = model_chain_to_chains[model_chain.id]
     return any([chain in stoich_dict for chain in chains])
@@ -182,14 +190,47 @@ def is_in_stoichiometry(stoich_dict, chain):
 
 # Get the chain id used in the stoichiometry to use as common chain id
 def get_common_chain_id(stoich_dict, chain):
-    if chain.get_id() in stoich_dict:
-        return chain.get_id()
-    model_chain = chain_to_model_chain[get_chain_full_id(chain)]
-    chains = model_chain_to_chains[model_chain.id]
-    common_chain_id = [chain for chain in chains if chain in stoich_dict]
-    if len(common_chain_id) > 1:
-        log.error(f"Error with stoichiometry: {common_chain_id} are the same chains but different "
-                  "lines in the stoichiometry file")
-        sys.exit(1)
+    if stoichiometry_ids_are_prefixes(stoich_dict):
+        stoich_id = get_chain_full_id(chain).split(".")[0]
+        if stoich_id in stoich_dict:
+            return stoich_id
+    else:
+        if chain.get_id() in stoich_dict:
+            return chain.get_id()
+        model_chain = chain_to_model_chain[get_chain_full_id(chain)]
+        chains = model_chain_to_chains[model_chain.id]
+        common_chain_id = [chain for chain in chains if chain in stoich_dict]
+        if len(common_chain_id) > 1:
+            log.error(f"Error with stoichiometry: {common_chain_id} are the same chains but different "
+                      "lines in the stoichiometry file")
+            sys.exit(1)
 
-    return common_chain_id[0]
+        return common_chain_id[0]
+
+
+def stoichiometry_ids_are_prefixes(stoich_dict):
+    prefix_len = 6
+    return any(len(stoich_id) == prefix_len for stoich_id in stoich_dict.keys())
+
+
+def update_stoichiometry(stoich_dict, chain):
+    if stoichiometry_ids_are_prefixes(stoich_dict):
+        stoich_id = get_chain_full_id(chain).split(".")[0]
+        current_stoich_dict_by_prefix[stoich_id] = current_stoich_dict_by_prefix.setdefault(
+            stoich_id, dict())
+        current_stoich_dict_by_prefix[stoich_id][
+            chain.get_id()] = current_stoich_dict_by_prefix[stoich_id].setdefault(chain.get_id(), 0) + 1
+
+        structure = chain.parent.parent
+        structure_chain_ids = [c.get_id() for c in structure.get_chains()]
+        if list(current_stoich_dict_by_prefix[stoich_id].keys()) == structure_chain_ids and all(
+                [current_stoich_dict_by_prefix[stoich_id][c.get_id()] == 1 for c in
+                 structure.get_chains()]):
+            current_stoich_dict[stoich_id] = current_stoich_dict.setdefault(
+                stoich_id, 0) + 1
+            for chain_id in current_stoich_dict_by_prefix[stoich_id].keys():
+                current_stoich_dict_by_prefix[stoich_id][chain_id] = 0
+    else:
+        common_chain_id = get_common_chain_id(stoich_dict, chain)
+        current_stoich_dict[common_chain_id] = current_stoich_dict.setdefault(
+            common_chain_id, 0) + 1

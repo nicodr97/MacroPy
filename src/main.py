@@ -23,6 +23,7 @@ def parse_input_directory(path, stoichiometry_path):
                   and not f.startswith('.')]
 
     all_chains = set()
+    all_prefixes = set()
 
     # Check each file
     for file_name in file_names:
@@ -65,14 +66,23 @@ def parse_input_directory(path, stoichiometry_path):
             chains_in_file_name = [chain_letter for chain_letter in "".join(chains_in_file_name)]
 
         if len(pdb_name) != 4:
-            log.error(input_dir_error_msg + file_error_msg + "PDB name must have 4 characters:\n" \
-                                "<PDB name>_<chain1>_<chain2>.pdb(.gz) or " \
+            log.error(input_dir_error_msg + file_error_msg + "PDB name must have 4 characters:\n"
+                                "<PDB name>_<chain1>_<chain2>.pdb(.gz) or "
                                 "<Uniprot ID>.<DNA or RNA>.<PDB name>_<chain1>_<chain2>.pdb(.gz)")
             sys.exit(1)
 
         if not pdb_name.isalnum():
             log.error(input_dir_error_msg + file_error_msg + "PDB name must be alphanumeric")
             sys.exit(1)
+
+        # Check prefix
+        if len(file_name_parts_no_ext) > 1:
+            prefix = file_name_parts_no_ext[0]
+            if len(prefix) != 6 or not prefix[0].isalnum() or not prefix[1:].isnumeric():
+                log.error(input_dir_error_msg + file_error_msg +
+                          "Prefix must have one letter and five numbers")
+                sys.exit(1)
+            all_prefixes.add(prefix)
 
         # Process PDB
         file_name_no_ext = ".".join(file_name_parts_no_ext)
@@ -93,20 +103,24 @@ def parse_input_directory(path, stoichiometry_path):
                 all_chains.add(chain)
                 chains.remove(chain)
 
+
     if stoichiometry_path:
         with open(stoichiometry_path, 'r') as stoich_file:
             lines = stoich_file.readlines()
             for line in lines:
-                if not line[0].isalpha() or not line[2:].strip().isnumeric() or line[1] != ":":
+                stoich_id = line.split(":")[0]
+                num = line.split(":")[1]
+                if id is None or num is None or \
+                        not stoich_id.isalnum() or not num.strip().isnumeric():
                     log.error(f"Error in stoichiometry file: it should be as follows\n"
-                              "<chain>:<number>")
+                              "<chain/protein>:<number>")
                     sys.exit(1)
-                if line[0] not in all_chains:
-                    log.error(f"Error in stoichiometry file: chain {line[0]} is not present in any"
+                if stoich_id not in all_prefixes and stoich_id not in all_chains:
+                    log.error(f"Error in stoichiometry file: chain/prefix {stoich_id} is not present in any"
                               " structure")
                     sys.exit(1)
 
-                stoich_dict[line[0]] = int(line[2:])
+                stoich_dict[stoich_id] = int(num)
 
     return 0
 
