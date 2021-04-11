@@ -84,8 +84,9 @@ def get_similar_chain_model(chain, identity_threshold, rmsd_threshold):
     # and return it if there's one that matches
     for model_chain in filter(lambda x: x.chain.xtra["type"] == chain.xtra["type"],
                               processed_chains):
-        # Align the sequences to compare the alignment score % with the identity threshold
-        score, positions = align(chain, model_chain.sequence)
+        # Align the sequences to compare the alignment score % (the first one (next()))
+        # with the identity threshold
+        score, positions = next(align(chain, model_chain.sequence))
         if score > float(identity_threshold):
             # If they are aligned, superimpose them to compare the RMSD with its threshold
             rmsd, rotran = superimpose(chain, model_chain.chain, positions)

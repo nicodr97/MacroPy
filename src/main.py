@@ -203,7 +203,7 @@ def main():
     process_pdbs(pdb_chains, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
 
     build_complex(args.output_directory, int(args.max_chains), args.clashes_distance,
-                  args.number_clashes, stoich_dict, args.complex_name)
+                  args.number_clashes, stoich_dict, args.complex_name, args.identity_threshold)
 
 
 if __name__ == "__main__":
