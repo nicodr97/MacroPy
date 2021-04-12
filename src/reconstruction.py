@@ -11,7 +11,8 @@ current_stoich_dict = dict()  # Count the stoichiometry in the reconstructed com
 current_stoich_dict_by_prefix = dict()  # Count the chain stoichiometry when the stoichiometry file has prefixes as ids
 
 
-def build_complex(out_dir, max_chains, clashes_distance, number_clashes, stoich_dict, complex_name):
+def build_complex(out_dir, max_chains, clashes_distance, number_clashes,
+                  stoich_dict, complex_name, identity_threshold):
     first_modelchain = choose_first_modelchain(stoich_dict)
 
     # Initialize the complex Structure object with one of the PDBs of the ModelChain
@@ -19,15 +20,12 @@ def build_complex(out_dir, max_chains, clashes_distance, number_clashes, stoich_
     macro_complex = Structure.Structure(first_chain.parent.parent.get_id())
     macro_complex.add(Model.Model(0))
     macro_complex[0].add(first_chain.copy())
+    # Save the original ID and change its ID in the complex
     macro_complex[0][first_chain.get_id()].xtra["full_id"] = get_chain_full_id(first_chain)
     macro_complex[0][first_chain.get_id()].id = chain_ids.pop(0)
 
     if stoich_dict:
         update_stoichiometry(stoich_dict, first_chain)
-
-    # Process the first chain: change its ID and save the original full ID
-    # chain = macro_complex[0][first_chain.get_id()]
-
 
     chain_number_change = 1
     # Keep trying to add new interactions until no new chains are added
@@ -47,8 +45,8 @@ def build_complex(out_dir, max_chains, clashes_distance, number_clashes, stoich_
 
             # Add all the chains that interact that are present in the ModelChain, if they
             # don't clash with existing chains of the complex
-            add_modelchain_interactions(macro_complex, chain, modelchain_obj,
-                                        clashes_distance, number_clashes, stoich_dict)
+            add_modelchain_interactions(macro_complex, chain, modelchain_obj, clashes_distance,
+                                        number_clashes, stoich_dict, identity_threshold)
             # Change the xtra attribute of the chain whose interactions have been added so that
             # they aren't tried to be added again
             chain.xtra["processed"] = True
@@ -84,7 +82,7 @@ def choose_first_modelchain(stoich_dict):
 
 
 def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_distance,
-                                number_clashes, stoich_dict):
+                                number_clashes, stoich_dict, identity_threshold):
     # For every interaction in the ModelChain, (starting from the complementary strand of a nucleic
     # acid, if the ModelChain is of "type" nucleic and it has a complementary strand)
     for interaction in ordered_interactions(modelchain_obj, ref_chain):
@@ -100,19 +98,25 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
                     # Skip interaction if the stoichiometry is exceeded
                     continue
 
-            # Get the rotation-translation matrix
-            rmsd, mov = superimpose(ref_chain, interaction[0])
-            # Apply the rotation-translation
-            interactor.transform(mov[0], mov[1])
-            # If its new atom coords won't clash with any existing atoms in the Complex, add it
-            if not is_clashing(structure, interactor, clashes_distance, number_clashes):
-                # If it's added and there's a stoichiometry file, add it to the count
-                if stoich_dict:
-                    update_stoichiometry(stoich_dict, interaction[-1])
-                # Process the chain IDs before adding it
-                interactor.xtra["full_id"] = get_chain_full_id(interactor)
-                interactor.id = chain_ids.pop(0)
-                structure[0].add(interactor)
+            # Add the interaction of the ref_chain to every position it aligns to (e.g., for a
+            # long nucleic acid chain, every time a shorter nucleic acid chain aligns with it)
+            for percentage, positions in align(ref_chain, interaction[0].xtra["seq"]):
+                # Add the interaction if the alignment score % is higher than the threshold
+                if percentage > float(identity_threshold):
+                    # Get the rotation-tidentity_thresholdranslation matrix
+                    rmsd, mov = superimpose(ref_chain, interaction[0], positions)
+                    # Apply the rotation-translation
+                    interactor.transform(mov[0], mov[1])
+                    # If its new atom coords won't clash with any existing atoms in the Complex, add it
+                    if not is_clashing(structure, interactor, clashes_distance, number_clashes):
+                        # If it's added and there's a stoichiometry file, add it to the count
+                        if stoich_dict:
+                            update_stoichiometry(stoich_dict, interaction[-1])
+                        # Process the chain IDs before adding it
+                        interactor.xtra["full_id"] = get_chain_full_id(interactor)
+                        interactor.id = chain_ids.pop(0)
+                        structure[0].add(interactor)
+
 
 
 def ordered_interactions(modelchain_obj, ref_chain):
@@ -155,11 +159,12 @@ def is_clashing(structure, interactor, clashes_distance, number_clashes):
         if len(close_atoms) > 0:
             close_ca.append(close_atoms)
 
+    # If there are none, don't consider clashing
+    if len(close_ca) == 0:
+        return False
+
     # Get the chains of the Complex from which at least a CA has been found to be close
     close_chains = set(atom.parent.parent for ca_list in close_ca for atom in ca_list)
-    # If there are none, don't consider clashing
-    if len(close_chains) == 0:
-        return False
 
     # Exhaustive search, with all the atoms from the closer chains and the interactor
     chains_atoms = [atom for chain in close_chains for atom in chain.get_atoms()]

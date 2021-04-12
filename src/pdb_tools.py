@@ -21,12 +21,13 @@ def align(chain, seq):
     aligner.mismatch_score = -1
     aligner.open_gap_score = -1
     aligner.extend_gap_score = -1
-    alignment = aligner.align(chain_seq, seq)[0]
+    alignment = aligner.align(chain_seq, seq)
 
-    lengths = (len(chain_seq), len(seq))
-    length = max(lengths) if chain.xtra["type"] == "prot" else min(lengths)
-    percentage = (alignment.score / length)
-    return percentage, alignment.aligned
+    # Yield all possible alignments found by the function
+    for i in alignment:
+        lengths = (len(chain_seq), len(seq))
+        length = max(lengths) if chain.xtra["type"] == "prot" else min(lengths)
+        yield (i.score/length), i.aligned
 
 
 
