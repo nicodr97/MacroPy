@@ -24,6 +24,7 @@ def parse_input_directory(path, stoichiometry_path):
                   and not f.startswith('.')]
 
     all_chains = set()
+    all_chains_by_pdb = dict()
     all_prefixes = set()
 
     # Check each file
@@ -93,16 +94,19 @@ def parse_input_directory(path, stoichiometry_path):
         for chain in structure.get_chains():
             pdb_chains.append(chain)
 
+        if pdb_name not in all_chains_by_pdb:
+            all_chains_by_pdb[pdb_name] = set()
         # Check that the chains in the file name are in the PDB
-        chains = [c.get_id() for c in structure.get_chains()]
-        for chain in chains_in_file_name:
-            if chain not in chains:
-                log.error(input_dir_error_msg + file_error_msg + f"chain {chain} not present"
+        chain_ids = [c.get_id() for c in structure.get_chains()]
+        for chain_id in chains_in_file_name:
+            if chain_id not in chain_ids:
+                log.error(input_dir_error_msg + file_error_msg + f"chain {chain_id} not present"
                                                                  " in the structure")
                 sys.exit(1)
             else:
-                all_chains.add(chain)
-                chains.remove(chain)
+                all_chains.add(chain_id)
+                all_chains_by_pdb[pdb_name].add(chain_id)
+                chain_ids.remove(chain_id)
 
 
     if stoichiometry_path:
@@ -111,15 +115,33 @@ def parse_input_directory(path, stoichiometry_path):
             for line in lines:
                 stoich_id = line.split(":")[0]
                 num = line.split(":")[1]
-                if id is None or num is None or \
-                        not stoich_id.isalnum() or not num.strip().isnumeric():
-                    log.error(f"Error in stoichiometry file: it should be as follows\n"
-                              "<chain/protein>:<number>")
-                    sys.exit(1)
-                if stoich_id not in all_prefixes and stoich_id not in all_chains:
-                    log.error(f"Error in stoichiometry file: chain/prefix {stoich_id} is not present in any"
-                              " structure")
-                    sys.exit(1)
+                if "." in stoich_id:
+                    struct_id = stoich_id.split(".")[0]
+                    chain_id = stoich_id.split(".")[1]
+                    if struct_id is None or chain_id is None or num is None or \
+                            not struct_id.isalnum() or not chain_id.isalpha() or \
+                            not num.strip().isnumeric():
+                        log.error(f"Error in stoichiometry file: it should be as follows\n"
+                                  "<structure>.<chain>:<number>")
+                        sys.exit(1)
+
+                    if struct_id not in all_chains_by_pdb:
+                        log.error(f"Error in stoichiometry file: structure {struct_id} is not present")
+                        sys.exit(1)
+                    if chain_id not in all_chains_by_pdb[struct_id]:
+                        log.error(f"Error in stoichiometry file: chain {chain_id} is not present"
+                                  f" in structure {struct_id}")
+                        sys.exit(1)
+                else:
+                    if stoich_id is None or num is None or \
+                            not stoich_id.isalnum() or not num.strip().isnumeric():
+                        log.error(f"Error in stoichiometry file: it should be as follows\n"
+                                  "<chain/structure>:<number>")
+                        sys.exit(1)
+                    if stoich_id not in all_prefixes and stoich_id not in all_chains:
+                        log.error(f"Error in stoichiometry file: chain/prefix {stoich_id} is not present in any"
+                                  " structure")
+                        sys.exit(1)
 
                 stoich_dict[stoich_id] = int(num)
 

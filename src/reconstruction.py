@@ -75,9 +75,7 @@ def choose_first_modelchain(stoich_dict):
     return max([model_chain for model_chain in processed_chains
                 if not stoich_dict or is_in_stoichiometry(stoich_dict, model_chain.chain)],
                key=lambda x: len(set(get_chain_full_id(inter[0]).split("_")[0]
-                                                       for inter in x.interactions)))
-
-
+                                     for inter in x.interactions)))
 
 
 def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_distance,
@@ -143,7 +141,6 @@ def ordered_interactions(modelchain_obj, ref_chain):
             yield i
 
 
-
 def is_clashing(structure, interactor, clashes_distance, number_clashes):
     # First, search for close CAs and Ps to then restrict an exhaustive search to the closer chains
     ca_str = [atom for atom in structure.get_atoms() if
@@ -184,12 +181,16 @@ def is_clashing(structure, interactor, clashes_distance, number_clashes):
 
 # Check if the chain is present in the stoichiometry
 def is_in_stoichiometry(stoich_dict, chain):
-    prefix_len = 6
-    if any(len(stoich_id) == prefix_len for stoich_id in stoich_dict.keys()):
+    if stoichiometry_ids_are_prefixes(stoich_dict):
         stoich_id = get_chain_full_id(chain).split(".")[0]
         return stoich_id in stoich_dict
+
     model_chain = chain_to_model_chain[get_chain_full_id(chain)]
     chains = model_chain_to_chains[model_chain.id]
+    if stoichiometry_ids_are_struct_chain(stoich_dict):
+        struct_id = get_chain_full_id(chain).split("_")[0]
+        return any([struct_id + "." + c in stoich_dict for c in chains])
+
     return any([chain in stoich_dict for chain in chains])
 
 
@@ -202,20 +203,25 @@ def get_common_chain_id(stoich_dict, chain):
     else:
         if chain.get_id() in stoich_dict:
             return chain.get_id()
+
         model_chain = chain_to_model_chain[get_chain_full_id(chain)]
         chains = model_chain_to_chains[model_chain.id]
-        common_chain_id = [chain for chain in chains if chain in stoich_dict]
-        if len(common_chain_id) > 1:
-            log.error(f"Error with stoichiometry: {common_chain_id} are the same chains but different "
-                      "lines in the stoichiometry file")
-            sys.exit(1)
+        if stoichiometry_ids_are_struct_chain(stoich_dict):
+            struct_id = get_chain_full_id(chain).split("_")[0]
+            return next(struct_id + "." + c for c in chains
+                        if struct_id + "." + c in stoich_dict)
 
-        return common_chain_id[0]
+        return next(c for c in chains if c in stoich_dict)
 
 
 def stoichiometry_ids_are_prefixes(stoich_dict):
     prefix_len = 6
-    return any(len(stoich_id) == prefix_len for stoich_id in stoich_dict.keys())
+    return any(
+        len(stoich_id) == prefix_len and stoich_id.isalnum() for stoich_id in stoich_dict.keys())
+
+
+def stoichiometry_ids_are_struct_chain(stoich_dict):
+    return any("." in stoich_id for stoich_id in stoich_dict.keys())
 
 
 def update_stoichiometry(stoich_dict, chain):
@@ -224,7 +230,8 @@ def update_stoichiometry(stoich_dict, chain):
         current_stoich_dict_by_prefix[stoich_id] = current_stoich_dict_by_prefix.setdefault(
             stoich_id, dict())
         current_stoich_dict_by_prefix[stoich_id][
-            chain.get_id()] = current_stoich_dict_by_prefix[stoich_id].setdefault(chain.get_id(), 0) + 1
+            chain.get_id()] = current_stoich_dict_by_prefix[stoich_id].setdefault(chain.get_id(),
+                                                                                  0) + 1
 
         structure = chain.parent.parent
         structure_chain_ids = [c.get_id() for c in structure.get_chains()]
