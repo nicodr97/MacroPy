@@ -7,6 +7,7 @@ from Bio.PDB import PDBParser
 from Bio.Data.IUPACData import protein_letters_3to1
 from pdb_processing import process_pdbs
 from reconstruction import build_complex
+from pdb_tools import get_chain_full_id
 
 pdb_chains = list()
 stoich_dict = dict()
@@ -143,10 +144,10 @@ def add_chain_sequences(structure):
     for chain in structure.get_chains():
         # Look at the first non-heteroatom residue to see if it is RNA, DNA or a protein
         first_residue = next(res for res in chain.get_residues() if res.get_id()[0].isspace())
-        if first_residue.get_resname().startswith(" "):
+        if first_residue.get_resname().startswith(" ") or first_residue.get_resname().endswith(" "):
             # DNA or RNA sequence with 1 letter ([-1] position of resname)
             chain.xtra["type"] = "nuc"
-            chain_sequence = "".join([res.get_resname()[-1] for res in chain.get_residues()
+            chain_sequence = "".join([res.get_resname().strip()[-1] for res in chain.get_residues()
                                       if res.get_id()[0].isspace()])
         else:
             # Protein sequence
@@ -154,6 +155,8 @@ def add_chain_sequences(structure):
             chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
                                       for res in chain.get_residues() if res.get_id()[0].isspace()])
         chain.xtra["seq"] = chain_sequence
+        # Also save the original chain ID as <PDB file name>:<Chain ID>
+        chain.xtra["full_id"] = get_chain_full_id(chain)
 
 
 

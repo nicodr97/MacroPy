@@ -59,7 +59,6 @@ def build_complex(out_dir, max_chains, clashes_distance, number_clashes,
 
     if current_stoich_dict != stoich_dict:
         log.error("Stoichiometry not satisfied")
-        sys.exit(1)
     # Finally, save the PDB of the Complex
     save_pdb(macro_complex, out_dir, complex_name)
 
@@ -118,18 +117,19 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
                         structure[0].add(interactor)
 
 
-
 def ordered_interactions(modelchain_obj, ref_chain):
     # If the chain to which we are adding interactions is a nucleic acid
     # and at least 1 (any) of the chains with which it interacts is also a nucleic acid
     if ref_chain.xtra["type"] == "nuc" and any([int[-1].xtra["type"] == "nuc"
                                                 for int in modelchain_obj.interactions]):
-            # Get the name of the PDB file (e.g., 2v2t) of the chain
-            chain_pdb_name = ref_chain.get_full_id()[0].split(".")[-1][:4]
-            # Get the list of interactions with a nucleic acid chain that share the same PDB file
-            chains_list = [int for int in modelchain_obj.interactions
-                           if int[-1].xtra["type"] == "nuc" and
-                           int[0].get_full_id()[0].split(".")[-1][:4] == chain_pdb_name]
+        # Get the name of the PDB file (e.g., 2v2t) of the chain
+        chain_pdb_name = ref_chain.xtra["full_id"].split(".")[-1][:4]
+        # Get the list of interactions with a nucleic acid chain that share the same PDB file
+        chains_list = [int for int in modelchain_obj.interactions
+                       if int[-1].xtra["type"] == "nuc" and
+                       int[0].xtra["full_id"].split(".")[-1][:4] == chain_pdb_name]
+
+        if len(chains_list) > 0:
             # Get the index of the interactions list to start iterating from
             index = modelchain_obj.interactions.index(chains_list[0])
             for i in modelchain_obj.interactions[index:]:
