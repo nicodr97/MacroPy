@@ -8,6 +8,7 @@ from Bio.Data.IUPACData import protein_letters_3to1 as Res_dict
 from PDB_processing import process_pdbs
 from Construction import build_complex
 from PDB_tools import get_chain_full_id, minimize
+from Stoichiometry import *
 
 pdb_chains = list()
 stoich_dict = dict()
@@ -111,42 +112,7 @@ def parse_input_directory(path, stoichiometry_path):
 
 
     if stoichiometry_path:
-        bad_format_msg = f"Error in stoichiometry file. The format should be one of the following:\n" \
-                         "<Chain ID>:<number>\n" \
-                         "<PDB ID>.<Chain ID>:<number>\n" \
-                         "<Uniprot ID>:<number>"
-        with open(stoichiometry_path, 'r') as stoich_file:
-            lines = stoich_file.readlines()
-            for line in lines:
-                stoich_id = line.split(":")[0]
-                num = line.split(":")[1]
-                if "." in stoich_id:
-                    struct_id = stoich_id.split(".")[0]
-                    chain_id = stoich_id.split(".")[1]
-                    if struct_id is None or chain_id is None or num is None or \
-                            not struct_id.isalnum() or not chain_id.isalpha() or \
-                            not num.strip().isnumeric():
-                        log.error(bad_format_msg)
-                        sys.exit(1)
-
-                    if struct_id not in all_chains_by_pdb:
-                        log.error(f"Error in stoichiometry file: structure {struct_id} is not present")
-                        sys.exit(1)
-                    if chain_id not in all_chains_by_pdb[struct_id]:
-                        log.error(f"Error in stoichiometry file: chain {chain_id} is not present"
-                                  f" in structure {struct_id}")
-                        sys.exit(1)
-                else:
-                    if stoich_id is None or num is None or \
-                            not stoich_id.isalnum() or not num.strip().isnumeric():
-                        log.error(bad_format_msg)
-                        sys.exit(1)
-                    if stoich_id not in all_prefixes and stoich_id not in all_chains:
-                        log.error(f"Error in stoichiometry file: chain/prefix {stoich_id} is not present in any"
-                                  " structure")
-                        sys.exit(1)
-
-                stoich_dict[stoich_id] = int(num)
+        parse_stoichiometry(stoichiometry_path, all_chains_by_pdb, all_prefixes, all_chains, stoich_dict)
 
     return 0
 
@@ -217,7 +183,7 @@ def parse_output_directory(path_dir, force):
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                     description="""MacroPy 1.0 - 
+                                     description="""MacroPy 1.0 -
                                                  Reconstruct a whole biological macro-complex using PDBs of
                                                  its pairwise interactions as input, either protein-protein,
                                                  protein-DNA or protein-RNA.""")
@@ -248,10 +214,10 @@ def main():
     parser.add_argument("-ns", "--Neighbor-Search-distance", default=5,
                         help="Minimum distance between two PDB chains to consider that "
                              "they are actually interacting")
-    parser.add_argument("-cd", "--clashes-distance", default=1.5,
+    parser.add_argument("-cd", "--clashes-distance", default=1.8,
                         help="Maximum distance between atoms of two chains to consider that "
                              "they have clashes between them")
-    parser.add_argument("-nc", "--number-clashes", default=10,
+    parser.add_argument("-nc", "--number-clashes", default=20,
                         help="Maximum number of close atoms to consider that two chains "
                              " are clashing")
     args = parser.parse_args()

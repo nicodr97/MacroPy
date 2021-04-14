@@ -4,6 +4,7 @@ from PDB_processing import processed_chains, chain_to_model_chain, model_chain_t
 from Bio.PDB import NeighborSearch, Structure, Model
 from string import ascii_uppercase
 from PDB_tools import *
+from Stoichiometry import *
 
 letter_list = list(ascii_uppercase)  # List of A-Z to use as the chains' new ids
 chain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # Extended list A-ZZ
@@ -25,7 +26,7 @@ def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distanc
     macro_complex[0][first_chain.get_id()].id = chain_ids.pop(0)
 
     if stoich_dict:
-        update_stoichiometry(stoich_dict, first_chain)
+        update_stoichiometry(stoich_dict, first_chain, current_stoich_dict, current_stoich_dict_by_prefix)
 
     chain_number_change = 1
     # Keep trying to add new interactions until no new chains are added
@@ -108,7 +109,7 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
                     if not is_clashing(structure, interactor, clashes_distance, number_clashes):
                         # If it's added and there's a stoichiometry file, add it to the count
                         if stoich_dict:
-                            update_stoichiometry(stoich_dict, interaction[-1])
+                            update_stoichiometry(stoich_dict, interaction[-1], current_stoich_dict, current_stoich_dict_by_prefix)
                         # Process the chain IDs before adding it
                         interactor.xtra["full_id"] = get_chain_full_id(interactor)
                         interactor.id = chain_ids.pop(0)
@@ -177,72 +178,3 @@ def is_clashing(structure, interactor, clashes_distance, number_clashes):
             return True
     # Don't consider clashing if there are less than a certain number of close atoms
     return False
-
-
-# Check if the chain is present in the stoichiometry
-def is_in_stoichiometry(stoich_dict, chain):
-    if stoichiometry_ids_are_prefixes(stoich_dict):
-        stoich_id = get_chain_full_id(chain).split(".")[0]
-        return stoich_id in stoich_dict
-
-    model_chain = chain_to_model_chain[get_chain_full_id(chain)]
-    chains = model_chain_to_chains[model_chain.id]
-    if stoichiometry_ids_are_struct_chain(stoich_dict):
-        struct_id = get_chain_full_id(chain).split("_")[0]
-        return any([struct_id + "." + c in stoich_dict for c in chains])
-
-    return any([chain in stoich_dict for chain in chains])
-
-
-# Get the chain id used in the stoichiometry to use as common chain id
-def get_common_chain_id(stoich_dict, chain):
-    if stoichiometry_ids_are_prefixes(stoich_dict):
-        stoich_id = get_chain_full_id(chain).split(".")[0]
-        if stoich_id in stoich_dict:
-            return stoich_id
-    else:
-        if chain.get_id() in stoich_dict:
-            return chain.get_id()
-
-        model_chain = chain_to_model_chain[get_chain_full_id(chain)]
-        chains = model_chain_to_chains[model_chain.id]
-        if stoichiometry_ids_are_struct_chain(stoich_dict):
-            struct_id = get_chain_full_id(chain).split("_")[0]
-            return next(struct_id + "." + c for c in chains
-                        if struct_id + "." + c in stoich_dict)
-
-        return next(c for c in chains if c in stoich_dict)
-
-
-def stoichiometry_ids_are_prefixes(stoich_dict):
-    prefix_len = 6
-    return any(
-        len(stoich_id) == prefix_len and stoich_id.isalnum() for stoich_id in stoich_dict.keys())
-
-
-def stoichiometry_ids_are_struct_chain(stoich_dict):
-    return any("." in stoich_id for stoich_id in stoich_dict.keys())
-
-
-def update_stoichiometry(stoich_dict, chain):
-    if stoichiometry_ids_are_prefixes(stoich_dict):
-        stoich_id = get_chain_full_id(chain).split(".")[0]
-        current_stoich_dict_by_prefix[stoich_id] = current_stoich_dict_by_prefix.setdefault(
-            stoich_id, dict())
-        current_stoich_dict_by_prefix[stoich_id][
-            chain.get_id()] = current_stoich_dict_by_prefix[stoich_id].setdefault(chain.get_id(),
-                                                                                  0) + 1
-
-        structure = chain.parent.parent
-        structure_chain_ids = [c.get_id() for c in structure.get_chains()]
-        if list(current_stoich_dict_by_prefix[stoich_id].keys()) == structure_chain_ids and all(
-                [current_stoich_dict_by_prefix[stoich_id][c.get_id()] == 1 for c in
-                 structure.get_chains()]):
-            current_stoich_dict[stoich_id] = current_stoich_dict.setdefault(
-                stoich_id, 0) + 1
-            for chain_id in current_stoich_dict_by_prefix[stoich_id].keys():
-                current_stoich_dict_by_prefix[stoich_id][chain_id] = 0
-    else:
-        common_chain_id = get_common_chain_id(stoich_dict, chain)
-        current_stoich_dict[common_chain_id] = current_stoich_dict.setdefault(
-            common_chain_id, 0) + 1

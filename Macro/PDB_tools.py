@@ -87,12 +87,14 @@ def save_structure(structure, out_dir, complex_name, save_pdb):
 
 
 
-from modeller import Environ, Selection
-from modeller import log as mlog
-from modeller.scripts import complete_pdb
-from modeller.optimizers import ConjugateGradients, MolecularDynamics, actions
 
 def minimize(out_dir, complex_name, steps):
+    if steps:
+        from modeller import Environ, Selection
+        from modeller import log as mlog
+        from modeller.scripts import complete_pdb
+        from modeller.optimizers import ConjugateGradients, actions
+
     mlog.level(0)
     env = Environ(0)
     env.io.atom_files_directory = ['../atom_files']
