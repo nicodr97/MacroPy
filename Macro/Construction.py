@@ -1,9 +1,9 @@
 import sys
 import logging as log
-from pdb_processing import processed_chains, chain_to_model_chain, model_chain_to_chains
+from PDB_processing import processed_chains, chain_to_model_chain, model_chain_to_chains
 from Bio.PDB import NeighborSearch, Structure, Model
 from string import ascii_uppercase
-from pdb_tools import *
+from PDB_tools import *
 
 letter_list = list(ascii_uppercase)  # List of A-Z to use as the chains' new ids
 chain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # Extended list A-ZZ
@@ -11,13 +11,13 @@ current_stoich_dict = dict()  # Count the stoichiometry in the reconstructed com
 current_stoich_dict_by_prefix = dict()  # Count the chain stoichiometry when the stoichiometry file has prefixes as ids
 
 
-def build_complex(out_dir, max_chains, clashes_distance, number_clashes,
+def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distance,
                   stoich_dict, complex_name, identity_threshold):
     first_modelchain = choose_first_modelchain(stoich_dict)
 
     # Initialize the complex Structure object with one of the PDBs of the ModelChain
     first_chain = first_modelchain.chain
-    macro_complex = Structure.Structure(first_chain.parent.parent.get_id())
+    macro_complex = Structure.Structure(complex_name)
     macro_complex.add(Model.Model(0))
     macro_complex[0].add(first_chain.copy())
     # Save the original ID and change its ID in the complex
@@ -58,9 +58,9 @@ def build_complex(out_dir, max_chains, clashes_distance, number_clashes,
         chain_number_change = new_chain_number - chain_number
 
     if current_stoich_dict != stoich_dict:
-        log.error("Stoichiometry not satisfied")
+        log.error("Stoichiometry couldn't be satisfied")
     # Finally, save the PDB of the Complex
-    save_pdb(macro_complex, out_dir, complex_name)
+    save_structure(macro_complex, out_dir, complex_name, save_pdb)
 
 
 def choose_first_modelchain(stoich_dict):

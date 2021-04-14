@@ -1,7 +1,7 @@
 import logging as log
 from Bio.PDB import NeighborSearch
 from string import ascii_uppercase
-from pdb_tools import *
+from PDB_tools import *
 
 
 processed_chains = list()  # List to store the ModelChains that are created

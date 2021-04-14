@@ -4,10 +4,10 @@ import gzip
 import sys
 import logging as log
 from Bio.PDB import PDBParser
-from Bio.Data.IUPACData import protein_letters_3to1
-from pdb_processing import process_pdbs
-from reconstruction import build_complex
-from pdb_tools import get_chain_full_id
+from Bio.Data.IUPACData import protein_letters_3to1 as Res_dict
+from PDB_processing import process_pdbs
+from Construction import build_complex
+from PDB_tools import get_chain_full_id, minimize
 
 pdb_chains = list()
 stoich_dict = dict()
@@ -82,7 +82,7 @@ def parse_input_directory(path, stoichiometry_path):
             prefix = file_name_parts_no_ext[0]
             if len(prefix) != 6 or not prefix[0].isalnum() or not prefix[1:].isnumeric():
                 log.error(input_dir_error_msg + file_error_msg +
-                          "Prefix must have one letter and five numbers")
+                          "Uniprot ID must have one letter and five numbers")
                 sys.exit(1)
             all_prefixes.add(prefix)
 
@@ -96,6 +96,7 @@ def parse_input_directory(path, stoichiometry_path):
 
         if pdb_name not in all_chains_by_pdb:
             all_chains_by_pdb[pdb_name] = set()
+
         # Check that the chains in the file name are in the PDB
         chain_ids = [c.get_id() for c in structure.get_chains()]
         for chain_id in chains_in_file_name:
@@ -110,6 +111,10 @@ def parse_input_directory(path, stoichiometry_path):
 
 
     if stoichiometry_path:
+        bad_format_msg = f"Error in stoichiometry file. The format should be one of the following:\n" \
+                         "<Chain ID>:<number>\n" \
+                         "<PDB ID>.<Chain ID>:<number>\n" \
+                         "<Uniprot ID>:<number>"
         with open(stoichiometry_path, 'r') as stoich_file:
             lines = stoich_file.readlines()
             for line in lines:
@@ -121,8 +126,7 @@ def parse_input_directory(path, stoichiometry_path):
                     if struct_id is None or chain_id is None or num is None or \
                             not struct_id.isalnum() or not chain_id.isalpha() or \
                             not num.strip().isnumeric():
-                        log.error(f"Error in stoichiometry file: it should be as follows\n"
-                                  "<structure>.<chain>:<number>")
+                        log.error(bad_format_msg)
                         sys.exit(1)
 
                     if struct_id not in all_chains_by_pdb:
@@ -135,8 +139,7 @@ def parse_input_directory(path, stoichiometry_path):
                 else:
                     if stoich_id is None or num is None or \
                             not stoich_id.isalnum() or not num.strip().isnumeric():
-                        log.error(f"Error in stoichiometry file: it should be as follows\n"
-                                  "<chain/structure>:<number>")
+                        log.error(bad_format_msg)
                         sys.exit(1)
                     if stoich_id not in all_prefixes and stoich_id not in all_chains:
                         log.error(f"Error in stoichiometry file: chain/prefix {stoich_id} is not present in any"
@@ -166,16 +169,27 @@ def add_chain_sequences(structure):
     for chain in structure.get_chains():
         # Look at the first non-heteroatom residue to see if it is RNA, DNA or a protein
         first_residue = next(res for res in chain.get_residues() if res.get_id()[0].isspace())
-        if first_residue.get_resname().startswith(" ") or first_residue.get_resname().endswith(" "):
+        if first_residue.get_resname().startswith(" "):
             # DNA or RNA sequence with 1 letter ([-1] position of resname)
             chain.xtra["type"] = "nuc"
-            chain_sequence = "".join([res.get_resname().strip()[-1] for res in chain.get_residues()
-                                      if res.get_id()[0].isspace()])
+            # To check if the residue is a ribonucleotide ("  X") or a deoxyribonucleotide (" DX")
+            nuc_letters = "A G T C U".split(" ")
+            is_ribonuc = lambda res: res.get_resname()[:-1] == "  " and \
+                                     res.get_resname()[-1] in nuc_letters
+            is_deoxyribonuc = lambda res: res.get_resname()[:-1] == " D" and \
+                                          res.get_resname()[-1] in nuc_letters
+            # Get the sequence
+            chain_sequence = "".join([res.get_resname()[-1] for res in chain.get_residues()
+                                      if (is_ribonuc(res) or is_deoxyribonuc(res))])
         else:
             # Protein sequence
             chain.xtra["type"] = "prot"
-            chain_sequence = "".join([protein_letters_3to1[res.get_resname().lower().capitalize()]
-                                      for res in chain.get_residues() if res.get_id()[0].isspace()])
+            # Function to change the PDB names of the residues from RES (e.g., HIS) to Res (His)
+            # to query the residue dictionary (keys as "Res")
+            RES_to_Res = lambda res: res.get_resname().lower().capitalize()
+            # Get the sequence
+            chain_sequence = "".join([Res_dict[RES_to_Res(res)] for res in chain.get_residues()
+                                      if RES_to_Res(res) in Res_dict])
         chain.xtra["seq"] = chain_sequence
         # Also save the original chain ID as <PDB file name>:<Chain ID>
         chain.xtra["full_id"] = get_chain_full_id(chain)
@@ -186,7 +200,10 @@ def parse_output_directory(path_dir, force):
     output_dir_error_msg = "Error with output directory. "
     if force is True:
         for folder in ['structures', 'analysis']:
-            os.makedirs(os.path.join(path_dir, folder), exist_ok=True)
+            dir = os.path.join(path_dir, folder)
+            os.makedirs(dir, exist_ok=True)
+            for file in os.listdir(dir):
+                os.remove(os.path.join(dir, file))
     else:
         if not os.path.exists(path_dir):
             for folder in ['structures', 'analysis']:
@@ -199,7 +216,11 @@ def parse_output_directory(path_dir, force):
 
 
 def main():
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                     description="""MacroPy 1.0 - 
+                                                 Reconstruct a whole biological macro-complex using PDBs of
+                                                 its pairwise interactions as input, either protein-protein,
+                                                 protein-DNA or protein-RNA.""")
     parser.add_argument("-i", "--input-directory", required=True,
                         help="Directory containing the input structure files")
     parser.add_argument("-o", "--output-directory", required=True,
@@ -212,6 +233,11 @@ def main():
                         help="File containing the stoichiometry")
     parser.add_argument("-v", "--verbose", action="store_true", default=False,
                         help="Program log will be printed to standard error while running")
+    parser.add_argument("-min", "--minimization", nargs='?', default=False, const=True,
+                        help="Perform an energy minimization by Conjugate Gradients algorithm with the specified "
+                             "(-min X) number of steps (or, if no number is specified (-min), until convergence)")
+    parser.add_argument("-pdb", "--save-pdb", action="store_true", default=False,
+                        help="Besides the .cif file, save a .pdb file with up to 25 chains")
     parser.add_argument("-mc", "--max-chains", default=180,
                         help="Number of chains of the complex at which to stop adding new chains")
     parser.add_argument("-it", "--identity-threshold", default=0.95,
@@ -219,7 +245,7 @@ def main():
                              "to consider two PDB chains the same")
     parser.add_argument("-Rt", "--RMSD-threshold", default=2.5,
                         help="Maximum RMSD value to consider two (similar) PDB chains the same")
-    parser.add_argument("-ns", "--Neighbor-Search-distance", default=3.5,
+    parser.add_argument("-ns", "--Neighbor-Search-distance", default=5,
                         help="Minimum distance between two PDB chains to consider that "
                              "they are actually interacting")
     parser.add_argument("-cd", "--clashes-distance", default=1.5,
@@ -241,8 +267,11 @@ def main():
 
     process_pdbs(pdb_chains, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
 
-    build_complex(args.output_directory, int(args.max_chains), args.clashes_distance,
-                  args.number_clashes, stoich_dict, args.complex_name, args.identity_threshold)
+    build_complex(args.output_directory, int(args.max_chains), args.number_clashes, args.save_pdb,
+                  args.clashes_distance, stoich_dict, str(args.complex_name), args.identity_threshold)
+
+    if args.minimization:
+        minimize(args.output_directory, args.complex_name, args.minimization)
 
 
 if __name__ == "__main__":
