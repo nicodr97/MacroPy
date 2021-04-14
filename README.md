@@ -15,7 +15,7 @@ pip install biopython
 # Installation
 You can download and install MacroPy by cloning it and then executing the setup.py script:
 ```
-git clone 
+git clone COMPLETAR
 python setup.py install
 ```
 
@@ -78,9 +78,9 @@ optional arguments:
 ```
 
 
-For more details about MacroPy go to 
+For more details about MacroPy go to COMPLETAR
 
 # Authors
-Nicolás Díaz Roussel
-Alejandra Omaira Morcillo Nieto
-Francho Nerín Fonz
+Nicolás Díaz Roussel  
+Alejandra Omaira Morcillo Nieto  
+Francho Nerín Fonz  
