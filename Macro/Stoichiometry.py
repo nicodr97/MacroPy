@@ -1,16 +1,17 @@
-import logging as logging
+import logging as log
 import sys
-# from PDB_processing import processed_chains, chain_to_model_chain, model_chain_to_chains
 from PDB_processing import chain_to_model_chain, model_chain_to_chains
 from PDB_tools import get_chain_full_id
 
 
+def parse_stoichiometry(stoichiometry_path, all_chains_by_pdb, all_prefixes, all_chains,
+                        stoich_dict):
+    """Check format of the stoichiometry file"""
 
-def parse_stoichiometry(stoichiometry_path, all_chains_by_pdb, all_prefixes, all_chains, stoich_dict):
-    bad_format_msg = f"Error in stoichiometry file. The format should be one of the following:\n" \
-                     "<Chain ID>:<number>\n" \
-                     "<PDB ID>.<Chain ID>:<number>\n" \
-                     "<Uniprot ID>:<number>"
+    bad_format_msg = f"""Error in stoichiometry file. The format should be one of the following:\n
+                     <Chain ID>:<number>\n
+                     <PDB ID>.<Chain ID>:<number>\n
+                     <Uniprot ID>:<number>"""
     with open(stoichiometry_path, 'r') as stoich_file:
         lines = stoich_file.readlines()
         for line in lines:
@@ -38,17 +39,17 @@ def parse_stoichiometry(stoichiometry_path, all_chains_by_pdb, all_prefixes, all
                     log.error(bad_format_msg)
                     sys.exit(1)
                 if stoich_id not in all_prefixes and stoich_id not in all_chains:
-                    log.error(f"Error in stoichiometry file: chain/prefix {stoich_id} is not present in any"
-                              " structure")
+                    log.error(
+                        f"Error in stoichiometry file: chain/prefix {stoich_id} is not present in "
+                        "any structure")
                     sys.exit(1)
 
             stoich_dict[stoich_id] = int(num)
 
 
-
-
-# Check if the chain is present in the stoichiometry
 def is_in_stoichiometry(stoich_dict, chain):
+    """Check if the chain is present in the stoichiometry"""
+
     if stoichiometry_ids_are_prefixes(stoich_dict):
         stoich_id = get_chain_full_id(chain).split(".")[0]
         return stoich_id in stoich_dict
@@ -62,9 +63,12 @@ def is_in_stoichiometry(stoich_dict, chain):
     return any([chain in stoich_dict for chain in chains])
 
 
-
-# Get the chain id used in the stoichiometry to use as common chain id
 def get_common_chain_id(stoich_dict, chain):
+    """
+    Get the chain id used in the stoichiometry to use as common chain id.
+    It might be different to the original chain id if the chain is repeated or has a homolog
+    """
+
     if stoichiometry_ids_are_prefixes(stoich_dict):
         stoich_id = get_chain_full_id(chain).split(".")[0]
         if stoich_id in stoich_dict:
@@ -83,20 +87,23 @@ def get_common_chain_id(stoich_dict, chain):
         return next(c for c in chains if c in stoich_dict)
 
 
-
 def stoichiometry_ids_are_prefixes(stoich_dict):
-    prefix_len = 6
+    """Check if the ids in the stoichiometry file are Uniprot ids"""
+
+    prefix_len = 6  # Length of the Uniprot id
     return any(
         len(stoich_id) == prefix_len and stoich_id.isalnum() for stoich_id in stoich_dict.keys())
 
 
-
 def stoichiometry_ids_are_struct_chain(stoich_dict):
+    """Check if the ids in the stoichiometry file are <pdb id>.<chain id>"""
+
     return any("." in stoich_id for stoich_id in stoich_dict.keys())
 
 
-
 def update_stoichiometry(stoich_dict, chain, current_stoich_dict, current_stoich_dict_by_prefix):
+    """Update stoichiometry of the built complex"""
+
     if stoichiometry_ids_are_prefixes(stoich_dict):
         stoich_id = get_chain_full_id(chain).split(".")[0]
         current_stoich_dict_by_prefix[stoich_id] = current_stoich_dict_by_prefix.setdefault(

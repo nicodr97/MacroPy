@@ -8,13 +8,15 @@ from Bio.Data.IUPACData import protein_letters_3to1 as Res_dict
 from PDB_processing import process_pdbs
 from Construction import build_complex
 from PDB_tools import get_chain_full_id, minimize
-from Stoichiometry import *
+from Stoichiometry import parse_stoichiometry
 
 pdb_chains = list()
 stoich_dict = dict()
 
 
 def parse_input_directory(path, stoichiometry_path):
+    """Check format of files to be processed"""
+
     log.info("Parsing input PDB files")
     # Check if input directory is a directory
     input_dir_error_msg = "Error reading input directory. "
@@ -33,9 +35,9 @@ def parse_input_directory(path, stoichiometry_path):
     for file_name in file_names:
         # Error messages
         file_error_msg = f"Error in file '{file_name}': "
-        wrong_naming_msg = "wrong file naming structure. It should be as follows\n " \
-                           "<PDB name>_<chain1>_<chain2>.pdb(.gz) or " \
-                           "<Uniprot ID>.<DNA or RNA>.<PDB name>_<chain1>_<chain2>.pdb(.gz)"
+        wrong_naming_msg = """wrong file naming structure. It should be as follows\n
+                            <PDB name>_<chain1>_<chain2>.pdb(.gz) or
+                            <Uniprot ID>.<DNA or RNA>.<PDB name>_<chain1>_<chain2>.pdb(.gz)"""
 
         file_name_parts = file_name.split(".")
 
@@ -51,7 +53,6 @@ def parse_input_directory(path, stoichiometry_path):
                 len(file_name_parts) == 3 and not has_compressed_format) or (
                 len(file_name_parts) == 4 and not has_pdb_format) or (
                 len(file_name_parts) == 5 and not has_compressed_format):
-
             log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
             sys.exit(1)
 
@@ -70,9 +71,10 @@ def parse_input_directory(path, stoichiometry_path):
             chains_in_file_name = [chain_letter for chain_letter in "".join(chains_in_file_name)]
 
         if len(pdb_name) != 4:
-            log.error(input_dir_error_msg + file_error_msg + "PDB name must have 4 characters:\n"
-                                "<PDB name>_<chain1>_<chain2>.pdb(.gz) or "
-                                "<Uniprot ID>.<DNA or RNA>.<PDB name>_<chain1>_<chain2>.pdb(.gz)")
+            log.error(input_dir_error_msg + file_error_msg +
+                      "PDB name must have 4 characters:\n"
+                      "<PDB name>_<chain1>_<chain2>.pdb(.gz) or "
+                      "<Uniprot ID>.<DNA or RNA>.<PDB name>_<chain1>_<chain2>.pdb(.gz)")
             sys.exit(1)
 
         if not pdb_name.isalnum():
@@ -111,15 +113,14 @@ def parse_input_directory(path, stoichiometry_path):
                 all_chains_by_pdb[pdb_name].add(chain_id)
                 chain_ids.remove(chain_id)
 
-
     if stoichiometry_path:
-        parse_stoichiometry(stoichiometry_path, all_chains_by_pdb, all_prefixes, all_chains, stoich_dict)
-
-    return 0
-
+        parse_stoichiometry(stoichiometry_path, all_chains_by_pdb, all_prefixes, all_chains,
+                            stoich_dict)
 
 
 def get_pdb_structure(file_path, pdb_id):
+    """Parse PDB file"""
+
     if file_path.split(sep=".")[-1] == "gz":
         with gzip.open(file_path, 'rt') as pdb_file:
             structure = PDBParser(QUIET=True).get_structure(pdb_id, pdb_file)
@@ -131,8 +132,9 @@ def get_pdb_structure(file_path, pdb_id):
         return structure
 
 
-
 def add_chain_sequences(structure):
+    """Add metadata to chains"""
+
     for chain in structure.get_chains():
         # Look at the first non-heteroatom residue to see if it is RNA, DNA or a protein
         first_residue = next(res for res in chain.get_residues() if res.get_id()[0].isspace())
@@ -162,8 +164,9 @@ def add_chain_sequences(structure):
         chain.xtra["full_id"] = get_chain_full_id(chain)
 
 
-
 def parse_output_directory(path_dir, force):
+    """Create/Overwrite output directory"""
+
     output_dir_error_msg = "Error with output directory. "
     if force is True:
         log.info("Removing files from output directories")
@@ -181,52 +184,53 @@ def parse_output_directory(path_dir, force):
             log.error(output_dir_error_msg + f"'{path_dir}' directory already exists. Use [-f, "
                                              "--force] option to overwrite.")
             sys.exit(1)
-    return 0
 
 
 def main():
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                     description="""MacroPy 1.0 -
-                                                 Reconstruct a whole biological macro-complex using PDBs of
-                                                 its pairwise interactions as input, either protein-protein,
-                                                 protein-DNA or protein-RNA.""")
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="""MacroPy 1.0 -
+                     Reconstruct a whole biological macro-complex using PDBs of
+                     its pairwise interactions as input, either protein-protein,
+                     protein-DNA or protein-RNA.""")
+
     parser._action_groups.pop()
     required = parser.add_argument_group('required arguments')
     optional = parser.add_argument_group('optional arguments')
 
     required.add_argument("-i", "--input-directory", required=True,
-                        help="Directory containing the input structure files")
+                          help="Directory containing the input structure files")
     required.add_argument("-o", "--output-directory", required=True,
-                        help="Create the output directories")
+                          help="Create the output directories")
     optional.add_argument("-c", "--complex-name", default="Complex",
-                        help="Reconstructed complex name")
+                          help="Reconstructed complex name")
     optional.add_argument("-f", "--force", action="store_true", default=False,
-                        help="Force overwriting if the output directory already exists")
+                          help="Force overwriting if the output directory already exists")
     optional.add_argument("-s", "--stoichiometry",
-                        help="File containing the stoichiometry")
+                          help="File containing the stoichiometry")
     optional.add_argument("-v", "--verbose", action="store_true", default=False,
-                        help="Program log will be printed to standard error while running")
-    optional.add_argument("-min", "--minimization", nargs='?', default=False, const=True,
-                        help="Perform an energy minimization by Conjugate Gradients algorithm with the specified "
-                             "(-min X) number of steps (or, if no number is specified (-min), until convergence)")
+                          help="Program log will be printed to standard error while running")
+    optional.add_argument("-min", "--minimization", nargs='?', default=False, const=50000, type=int,
+                          help="Perform an energy minimization by Conjugate Gradients algorithm "
+                               "with the specified number of steps or until convergence")
     optional.add_argument("-pdb", "--save-pdb", action="store_true", default=False,
-                        help="Besides the .cif file, save a .pdb file with up to 25 chains")
-    optional.add_argument("-mc", "--max-chains", default=180,
-                        help="Number of chains of the complex at which to stop adding new chains")
-    optional.add_argument("-it", "--identity-threshold", default=0.95,
-                        help="Minimum percentage of sequence similarity (between 0 and 1) "
-                             "to consider two PDB chains the same")
-    optional.add_argument("-Rt", "--RMSD-threshold", default=2.5,
-                        help="Maximum RMSD value to consider two (similar) PDB chains the same")
-    optional.add_argument("-ns", "--Neighbor-Search-distance", default=5,
-                        help="Minimum distance between two PDB chains to consider that "
-                             "they are actually interacting")
-    optional.add_argument("-cd", "--clashes-distance", default=1.8,
-                        help="Maximum distance between atoms of two chains to consider that "
-                             "they have clashes between them")
-    optional.add_argument("-nc", "--number-clashes", default=20,
-                        help="Maximum number of close atoms to consider that two chains "
-                             " are clashing")
+                          help="Besides the .cif file, save a .pdb file with up to 25 chains")
+    optional.add_argument("-mc", "--max-chains", default=180, type=int,
+                          help="Number of chains of the complex at which to stop adding new chains")
+    optional.add_argument("-it", "--identity-threshold", default=0.95, type=float,
+                          help="Minimum percentage of sequence similarity (between 0 and 1) "
+                               "to consider two PDB chains the same")
+    optional.add_argument("-Rt", "--RMSD-threshold", default=2.5, type=float,
+                          help="Maximum RMSD value to consider two (similar) PDB chains the same")
+    optional.add_argument("-ns", "--Neighbor-Search-distance", default=5, type=float,
+                          help="Minimum distance between two PDB chains to consider that "
+                               "they are actually interacting")
+    optional.add_argument("-cd", "--clashes-distance", default=1.8, type=float,
+                          help="Maximum distance between atoms of two chains to consider that "
+                               "they have clashes between them")
+    optional.add_argument("-nc", "--number-clashes", default=20, type=int,
+                          help="Maximum number of close atoms to consider that two chains "
+                               " are clashing")
 
     args = parser.parse_args()
 
@@ -240,10 +244,11 @@ def main():
     parse_input_directory(args.input_directory, args.stoichiometry)
     parse_output_directory(args.output_directory, args.force)
 
-    process_pdbs(pdb_chains, args.identity_threshold, args.Neighbor_Search_distance, args.RMSD_threshold)
+    process_pdbs(pdb_chains, args.identity_threshold, args.Neighbor_Search_distance,
+                 args.RMSD_threshold)
 
-    build_complex(args.output_directory, int(args.max_chains), args.number_clashes, args.save_pdb,
-                  args.clashes_distance, stoich_dict, str(args.complex_name), args.identity_threshold)
+    build_complex(args.output_directory, args.max_chains, args.number_clashes, args.save_pdb,
+                  args.clashes_distance, stoich_dict, args.complex_name, args.identity_threshold)
 
     if args.minimization:
         minimize(args.output_directory, args.complex_name, args.minimization)

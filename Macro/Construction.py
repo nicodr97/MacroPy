@@ -1,19 +1,23 @@
-import sys
 import logging as log
-from PDB_processing import processed_chains, chain_to_model_chain, model_chain_to_chains
+from PDB_processing import processed_chains, chain_to_model_chain
 from Bio.PDB import NeighborSearch, Structure, Model
 from string import ascii_uppercase
-from PDB_tools import *
-from Stoichiometry import *
+from PDB_tools import align, get_chain_full_id, save_structure, superimpose
+from Stoichiometry import get_common_chain_id, is_in_stoichiometry, update_stoichiometry
 
 letter_list = list(ascii_uppercase)  # List of A-Z to use as the chains' new ids
 chain_ids = letter_list + [a + b for a in letter_list for b in letter_list]  # Extended list A-ZZ
 current_stoich_dict = dict()  # Count the stoichiometry in the reconstructed complex
-current_stoich_dict_by_prefix = dict()  # Count the chain stoichiometry when the stoichiometry file has prefixes as ids
+current_stoich_dict_by_prefix = dict()  # Count the chain stoichiometry when the stoichiometry
+
+
+# file has Uniprot prefixes as ids
 
 
 def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distance,
                   stoich_dict, complex_name, identity_threshold):
+    """Main function of the process of building the complex"""
+
     log.info("Building new complex")
     first_modelchain = choose_first_modelchain(stoich_dict)
 
@@ -27,7 +31,8 @@ def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distanc
     macro_complex[0][first_chain.get_id()].id = chain_ids.pop(0)
 
     if stoich_dict:
-        update_stoichiometry(stoich_dict, first_chain, current_stoich_dict, current_stoich_dict_by_prefix)
+        update_stoichiometry(stoich_dict, first_chain, current_stoich_dict,
+                             current_stoich_dict_by_prefix)
 
     chain_number_change = 1
     # Keep trying to add new interactions until no new chains are added
@@ -35,6 +40,7 @@ def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distanc
         # Make a list of the chains in the complex and save the number of chains
         chain_list = list(macro_complex.get_chains())
         chain_number = len(chain_list)
+        log.info(f"Chains in the complex: {chain_number}")
 
         # For each chain in the complex whose interactions haven't already been added (not
         # "processed"), add all the interactions saved in its corresponding ModelChain
@@ -43,7 +49,8 @@ def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distanc
             # attribute and querying the chain_to_model_chain dict for the ModelChain object
             chain_full_id = chain.xtra["full_id"]
             modelchain_obj = chain_to_model_chain[chain_full_id]
-            log.info(f"Adding interactions of: {chain_full_id} {len(modelchain_obj.interactions)}")
+            log.info(f"Checking the {len(modelchain_obj.interactions)} interactions of chain"
+                     f" {chain_full_id}")
 
             # Add all the chains that interact that are present in the ModelChain, if they
             # don't clash with existing chains of the complex
@@ -56,7 +63,6 @@ def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distanc
         # Get the new number of chains in the complex to keep adding interactors if new chains have
         # been added or stop if none have been added or we have reached the max number of chains
         new_chain_number = len(list(macro_complex.get_chains()))
-        log.info(f"Chains after adding: {new_chain_number}")
         chain_number_change = new_chain_number - chain_number
 
     total_chains = len(list(macro_complex.get_chains()))
@@ -68,14 +74,19 @@ def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distanc
 
 
 def choose_first_modelchain(stoich_dict):
-    # If there's any nucleic acid chain, use the ModelChain with the longest sequence first
+    """
+    Select starting chain of the complex based on:
+        - The nucleotide chain with longest sequence
+        - The protein chain with more interactions otherwise
+    """
+
     if any(model_chain.chain.xtra["type"] == "nuc" and (
             not stoich_dict or is_in_stoichiometry(stoich_dict, model_chain.chain)) for model_chain
            in processed_chains):
         return max(filter(lambda x: x.chain.xtra["type"] == "nuc" and (
                 not stoich_dict or is_in_stoichiometry(stoich_dict, x.chain)),
                           processed_chains), key=lambda x: len(x.sequence))
-    # If there isn't, use the ModelChain with the most number of interactions from different PDBs
+
     return max([model_chain for model_chain in processed_chains
                 if not stoich_dict or is_in_stoichiometry(stoich_dict, model_chain.chain)],
                key=lambda x: len(set(get_chain_full_id(inter[0]).split("_")[0]
@@ -84,8 +95,8 @@ def choose_first_modelchain(stoich_dict):
 
 def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_distance,
                                 number_clashes, stoich_dict, identity_threshold):
-    # For every interaction in the ModelChain, (starting from the complementary strand of a nucleic
-    # acid, if the ModelChain is of "type" nucleic and it has a complementary strand)
+    """Add the chains interacting with the reference chain based on certain restrictions"""
+
     for interaction in ordered_interactions(modelchain_obj, ref_chain):
         # Continue if there isn't a stoichiometry file or, if there is, if the chain is in it
         if not stoich_dict or is_in_stoichiometry(stoich_dict, interaction[-1]):
@@ -103,25 +114,28 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
             # long nucleic acid chain, every time a shorter nucleic acid chain aligns with it)
             for percentage, positions in align(ref_chain, interaction[0].xtra["seq"]):
                 # Add the interaction if the alignment score % is higher than the threshold
-                if percentage > float(identity_threshold):
+                if percentage > identity_threshold:
                     # Get the rotation-tidentity_thresholdranslation matrix
                     rmsd, mov = superimpose(ref_chain, interaction[0], positions)
                     # Apply the rotation-translation
                     interactor.transform(mov[0], mov[1])
-                    # If its new atom coords won't clash with any existing atoms in the Complex, add it
                     if not is_clashing(structure, interactor, clashes_distance, number_clashes):
-                        # If it's added and there's a stoichiometry file, add it to the count
                         if stoich_dict:
-                            update_stoichiometry(stoich_dict, interaction[-1], current_stoich_dict, current_stoich_dict_by_prefix)
+                            update_stoichiometry(stoich_dict, interaction[-1], current_stoich_dict,
+                                                 current_stoich_dict_by_prefix)
                         # Process the chain IDs before adding it
                         interactor.xtra["full_id"] = get_chain_full_id(interactor)
                         interactor.id = chain_ids.pop(0)
                         structure[0].add(interactor)
+                        log.info(f"Added chain {interactor.xtra['full_id']}")
 
 
 def ordered_interactions(modelchain_obj, ref_chain):
+    """Return a generator of the interactions of a chain sorted by length
+    if the chain is a nucleotide and has a complementary strand"""
+
     # If the chain to which we are adding interactions is a nucleic acid
-    # and at least 1 (any) of the chains with which it interacts is also a nucleic acid
+    # and at least 1 (any) of the chains it interacts with is also a nucleic acid
     if ref_chain.xtra["type"] == "nuc" and any([int[-1].xtra["type"] == "nuc"
                                                 for int in modelchain_obj.interactions]):
         # Get the name of the PDB file (e.g., 2v2t) of the chain
@@ -146,6 +160,11 @@ def ordered_interactions(modelchain_obj, ref_chain):
 
 
 def is_clashing(structure, interactor, clashes_distance, number_clashes):
+    """
+    Check if two chains (structure and interactor) are clashing,
+    i.e. if they have more than a threshold of clashes
+    """
+
     # First, search for close CAs and Ps to then restrict an exhaustive search to the closer chains
     ca_str = [atom for atom in structure.get_atoms() if
               atom.get_id() == "CA" or atom.get_id() == "P"]
@@ -175,9 +194,9 @@ def is_clashing(structure, interactor, clashes_distance, number_clashes):
     clashes = 0
     # For each atom in the interactor, check if there are clashing atoms in the Complex
     for atom in int_atoms:
-        close_atoms = exhaustive_search.search(atom.coord, float(clashes_distance))
+        close_atoms = exhaustive_search.search(atom.coord, clashes_distance)
         clashes += len(close_atoms)
-        if clashes >= int(number_clashes):
+        if clashes >= number_clashes:
             return True
     # Don't consider clashing if there are less than a certain number of close atoms
     return False

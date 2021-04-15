@@ -4,11 +4,8 @@ from Bio.Align import PairwiseAligner
 from Bio.PDB import Superimposer, MMCIFIO, PDBIO
 
 
-
 def get_chain_full_id(chain):
     return ":".join(chain.get_full_id()[0::2])
-
-
 
 
 def align(chain, seq):
@@ -27,9 +24,7 @@ def align(chain, seq):
     for i in alignment:
         lengths = (len(chain_seq), len(seq))
         length = max(lengths) if chain.xtra["type"] == "prot" else min(lengths)
-        yield (i.score/length), i.aligned
-
-
+        yield (i.score / length), i.aligned
 
 
 def superimpose(ref_chain, mov_chain, alignment_positions=None):
@@ -59,8 +54,11 @@ def superimpose(ref_chain, mov_chain, alignment_positions=None):
 
 
 def same_number_of_atoms(atom_chain1, atom_chain2):
+    """Return two chains of atoms of equals size"""
+
     if len(atom_chain1) != len(atom_chain2):
-        # Get the same number of atoms
+        # Get the most centered atoms of each chain, so we don't take much more atoms of any
+        # extreme of the chains
         atoms_length = min(len(atom_chain1), len(atom_chain2))
         atom_chain2_idx, remainder = divmod((len(atom_chain2) - atoms_length), 2)
         atom_chain2 = atom_chain2[atom_chain2_idx:len(atom_chain2) - atom_chain2_idx - remainder]
@@ -69,9 +67,9 @@ def same_number_of_atoms(atom_chain1, atom_chain2):
     return atom_chain1, atom_chain2
 
 
-
-
 def save_structure(structure, out_dir, complex_name, save_pdb):
+    """Save final complex"""
+
     io = MMCIFIO()
     io.set_structure(structure)
     io.save(os.path.join(out_dir, "structures", complex_name + ".cif"))
@@ -79,23 +77,21 @@ def save_structure(structure, out_dir, complex_name, save_pdb):
 
     if save_pdb:
         io = PDBIO()
-        chains_to_delete = [chain for chain in structure.get_chains() ][26:]
+        chains_to_delete = [chain for chain in structure.get_chains()][26:]
         for chain in chains_to_delete:
-            structure[0].detach_child( chain.get_id() )
+            structure[0].detach_child(chain.get_id())
         io.set_structure(structure)
         io.save(os.path.join(out_dir, "structures", complex_name + ".pdb"))
         log.info(f"Complex saved as {complex_name}.pdb")
 
 
+def minimize(out_dir, complex_name, max_steps):
+    """TODO"""
 
-
-
-def minimize(out_dir, complex_name, steps):
-    if steps:
-        from modeller import Environ, Selection
-        from modeller import log as mlog
-        from modeller.scripts import complete_pdb
-        from modeller.optimizers import ConjugateGradients, actions
+    from modeller import Environ, Selection
+    from modeller import log as mlog
+    from modeller.scripts import complete_pdb
+    from modeller.optimizers import ConjugateGradients, actions
 
     mlog.level(0)
     env = Environ(0)
@@ -117,16 +113,12 @@ def minimize(out_dir, complex_name, steps):
     # Create optimizer object and set defaults for all further optimizations
     cg = ConjugateGradients(output='REPORT')
 
-    if not isinstance(steps, bool):
-        max_steps = int(steps)
-    elif steps:
-        max_steps = 50000
-
     # Write basic stats on the optimization on a file
     with open(os.path.join(out_dir, "analysis", "minimization" + ".log"), 'w') as trcfil:
-
         # Run CG on the all-atom selection; write stats every 10 steps
-        cg.optimize(atmsel, min_atom_shift=0.01, max_iterations=max_steps, actions=actions.Trace(10, trcfil))
+        cg.optimize(atmsel, min_atom_shift=0.01, max_iterations=max_steps,
+                    actions=actions.Trace(10, trcfil))
 
     # Output the minimized structure
-    mdl.write(file=os.path.join(out_dir, 'structures', complex_name + '_minimized.cif'), model_format="MMCIF")
+    mdl.write(file=os.path.join(out_dir, 'structures', complex_name + '_minimized.cif'),
+              model_format="MMCIF")
