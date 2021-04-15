@@ -7,7 +7,7 @@ MacroPy is a command line program which reconstructs a whole biological macro-co
 
 
 # Requirements
-MacroPy needs [Python 3.7](https://www.python.org/downloads/) or higher and the packages [modeller](https://salilab.org/modeller/download_installation.html) and [Biopython](https://biopython.org/). This last package may be installed with the following command:
+MacroPy needs [Python 3.7](https://www.python.org/downloads/) or higher and the package [Biopython](https://biopython.org/). [Modeller](https://salilab.org/modeller/download_installation.html) is necessary to run the -min option. Biopython can be installed with the following command:
 ```
 pip install biopython
 ```
