@@ -29,7 +29,7 @@ class ModelChain:
 def process_pdbs(pdb_chains, identity_threshold, ns_threshold, rmsd_threshold):
     # Process PDBs and store their information in ModelChain objects
     # Go over all the PDB chains in pdb_chains, processing from longer to shorter
-    for chain in sorted(pdb_chains, key=lambda x: len(x.xtra["seq"]), reverse=True):
+    for chain in sorted(pdb_chains, key=lambda x: (len(x.xtra["seq"]), x.xtra["full_id"]), reverse=True):
         initialize_model_chains(chain, identity_threshold, rmsd_threshold)
         add_interactions(chain, ns_threshold)
 
