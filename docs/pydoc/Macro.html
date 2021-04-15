@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.2" />
+<title>MacroPy.Macro API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>MacroPy.Macro</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import argparse
+import os
+import gzip
+import sys
+import logging as log
+from Bio.PDB import PDBParser
+from Bio.Data.IUPACData import protein_letters_3to1 as Res_dict
+from PDB_processing import process_pdbs
+from Construction import build_complex
+from PDB_tools import get_chain_full_id, minimize
+from Stoichiometry import parse_stoichiometry
+
+pdb_chains = list()
+stoich_dict = dict()
+
+
+def parse_input_directory(path, stoichiometry_path):
+    &#34;&#34;&#34;Check format of files to be processed&#34;&#34;&#34;
+
+    log.info(&#34;Parsing input PDB files&#34;)
+    # Check if input directory is a directory
+    input_dir_error_msg = &#34;Error reading input directory. &#34;
+    if not os.path.isdir(path):
+        log.error(input_dir_error_msg + f&#34;&#39;{path}&#39; is not a directory&#34;)
+        sys.exit(1)
+
+    file_names = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
+                  and not f.startswith(&#39;.&#39;)]
+
+    all_chains = set()
+    all_chains_by_pdb = dict()
+    all_prefixes = set()
+
+    # Check each file
+    for file_name in file_names:
+        # Error messages
+        file_error_msg = f&#34;Error in file &#39;{file_name}&#39;: &#34;
+        wrong_naming_msg = &#34;&#34;&#34;wrong file naming structure. It should be as follows\n
+                            &lt;PDB name&gt;_&lt;chain1&gt;_&lt;chain2&gt;.pdb(.gz) or
+                            &lt;Uniprot ID&gt;.&lt;DNA or RNA&gt;.&lt;PDB name&gt;_&lt;chain1&gt;_&lt;chain2&gt;.pdb(.gz)&#34;&#34;&#34;
+
+        file_name_parts = file_name.split(&#34;.&#34;)
+
+        # Check extensions and name
+        has_prot_prot_format_len = len(file_name_parts) == 2 or len(file_name_parts) == 3
+        has_prot_dna_format_len = len(file_name_parts) == 4 or len(file_name_parts) == 5
+
+        has_pdb_format = file_name_parts[-1] == &#34;pdb&#34;
+        has_compressed_format = file_name_parts[-1] == &#34;gz&#34; and file_name_parts[-2] == &#34;pdb&#34;
+
+        if not (has_prot_prot_format_len or has_prot_dna_format_len) or (
+                len(file_name_parts) == 2 and not has_pdb_format) or (
+                len(file_name_parts) == 3 and not has_compressed_format) or (
+                len(file_name_parts) == 4 and not has_pdb_format) or (
+                len(file_name_parts) == 5 and not has_compressed_format):
+            log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
+            sys.exit(1)
+
+        file_name_parts_no_ext = [part for part in file_name_parts
+                                  if part != &#34;pdb&#34; and part != &#34;gz&#34;]
+
+        structure_name = file_name_parts_no_ext[-1]
+        structure_name_parts = structure_name.split(sep=&#34;_&#34;)
+        if len(structure_name_parts) != 3:
+            log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
+            sys.exit(1)
+        pdb_name = structure_name_parts[0]
+        chains_in_file_name = structure_name_parts[1:]
+
+        if has_prot_dna_format_len:
+            chains_in_file_name = [chain_letter for chain_letter in &#34;&#34;.join(chains_in_file_name)]
+
+        if len(pdb_name) != 4:
+            log.error(input_dir_error_msg + file_error_msg +
+                      &#34;PDB name must have 4 characters:\n&#34;
+                      &#34;&lt;PDB name&gt;_&lt;chain1&gt;_&lt;chain2&gt;.pdb(.gz) or &#34;
+                      &#34;&lt;Uniprot ID&gt;.&lt;DNA or RNA&gt;.&lt;PDB name&gt;_&lt;chain1&gt;_&lt;chain2&gt;.pdb(.gz)&#34;)
+            sys.exit(1)
+
+        if not pdb_name.isalnum():
+            log.error(input_dir_error_msg + file_error_msg + &#34;PDB name must be alphanumeric&#34;)
+            sys.exit(1)
+
+        # Check prefix
+        if len(file_name_parts_no_ext) &gt; 1:
+            prefix = file_name_parts_no_ext[0]
+            if len(prefix) != 6 or not prefix[0].isalnum() or not prefix[1:].isnumeric():
+                log.error(input_dir_error_msg + file_error_msg +
+                          &#34;Uniprot ID must have one letter and five numbers&#34;)
+                sys.exit(1)
+            all_prefixes.add(prefix)
+
+        # Process PDB
+        file_name_no_ext = &#34;.&#34;.join(file_name_parts_no_ext)
+        structure = get_pdb_structure(os.path.join(path, file_name), file_name_no_ext)
+
+        # Add chains to the pdb_chains list
+        for chain in structure.get_chains():
+            pdb_chains.append(chain)
+
+        if pdb_name not in all_chains_by_pdb:
+            all_chains_by_pdb[pdb_name] = set()
+
+        # Check that the chains in the file name are in the PDB
+        chain_ids = [c.get_id() for c in structure.get_chains()]
+        for chain_id in chains_in_file_name:
+            if chain_id not in chain_ids:
+                log.error(input_dir_error_msg + file_error_msg + f&#34;chain {chain_id} not present&#34;
+                                                                 &#34; in the structure&#34;)
+                sys.exit(1)
+            else:
+                all_chains.add(chain_id)
+                all_chains_by_pdb[pdb_name].add(chain_id)
+                chain_ids.remove(chain_id)
+
+    if stoichiometry_path:
+        parse_stoichiometry(stoichiometry_path, all_chains_by_pdb, all_prefixes, all_chains,
+                            stoich_dict)
+
+
+def get_pdb_structure(file_path, pdb_id):
+    &#34;&#34;&#34;Parse PDB file&#34;&#34;&#34;
+
+    if file_path.split(sep=&#34;.&#34;)[-1] == &#34;gz&#34;:
+        with gzip.open(file_path, &#39;rt&#39;) as pdb_file:
+            structure = PDBParser(QUIET=True).get_structure(pdb_id, pdb_file)
+            add_chain_sequences(structure)
+            return structure
+    else:
+        structure = PDBParser(QUIET=True).get_structure(pdb_id, file_path)
+        add_chain_sequences(structure)
+        return structure
+
+
+def add_chain_sequences(structure):
+    &#34;&#34;&#34;Add metadata to chains&#34;&#34;&#34;
+
+    for chain in structure.get_chains():
+        # Look at the first non-heteroatom residue to see if it is RNA, DNA or a protein
+        first_residue = next(res for res in chain.get_residues() if res.get_id()[0].isspace())
+        if first_residue.get_resname().startswith(&#34; &#34;):
+            # DNA or RNA sequence with 1 letter ([-1] position of resname)
+            chain.xtra[&#34;type&#34;] = &#34;nuc&#34;
+            # To check if the residue is a ribonucleotide (&#34;  X&#34;) or a deoxyribonucleotide (&#34; DX&#34;)
+            nuc_letters = &#34;A G T C U&#34;.split(&#34; &#34;)
+            is_ribonuc = lambda res: res.get_resname()[:-1] == &#34;  &#34; and \
+                                     res.get_resname()[-1] in nuc_letters
+            is_deoxyribonuc = lambda res: res.get_resname()[:-1] == &#34; D&#34; and \
+                                          res.get_resname()[-1] in nuc_letters
+            # Get the sequence
+            chain_sequence = &#34;&#34;.join([res.get_resname()[-1] for res in chain.get_residues()
+                                      if (is_ribonuc(res) or is_deoxyribonuc(res))])
+        else:
+            # Protein sequence
+            chain.xtra[&#34;type&#34;] = &#34;prot&#34;
+            # Function to change the PDB names of the residues from RES (e.g., HIS) to Res (His)
+            # to query the residue dictionary (keys as &#34;Res&#34;)
+            RES_to_Res = lambda res: res.get_resname().lower().capitalize()
+            # Get the sequence
+            chain_sequence = &#34;&#34;.join([Res_dict[RES_to_Res(res)] for res in chain.get_residues()
+                                      if RES_to_Res(res) in Res_dict])
+        chain.xtra[&#34;seq&#34;] = chain_sequence
+        # Also save the original chain ID as &lt;PDB file name&gt;:&lt;Chain ID&gt;
+        chain.xtra[&#34;full_id&#34;] = get_chain_full_id(chain)
+
+
+def parse_output_directory(path_dir, force):
+    &#34;&#34;&#34;Create/Overwrite output directory&#34;&#34;&#34;
+
+    output_dir_error_msg = &#34;Error with output directory. &#34;
+    if force is True:
+        log.info(&#34;Removing files from output directories&#34;)
+        for folder in [&#39;structures&#39;, &#39;analysis&#39;]:
+            dir = os.path.join(path_dir, folder)
+            os.makedirs(dir, exist_ok=True)
+            for file in os.listdir(dir):
+                os.remove(os.path.join(dir, file))
+    else:
+        if not os.path.exists(path_dir):
+            log.info(&#34;Creating output directories&#34;)
+            for folder in [&#39;structures&#39;, &#39;analysis&#39;]:
+                os.makedirs(os.path.join(path_dir, folder), exist_ok=False)
+        else:
+            log.error(output_dir_error_msg + f&#34;&#39;{path_dir}&#39; directory already exists. Use [-f, &#34;
+                                             &#34;--force] option to overwrite.&#34;)
+            sys.exit(1)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=&#34;&#34;&#34;MacroPy 1.0 -
+                     Reconstruct a whole biological macro-complex using PDBs of
+                     its pairwise interactions as input, either protein-protein,
+                     protein-DNA or protein-RNA.&#34;&#34;&#34;)
+
+    parser._action_groups.pop()
+    required = parser.add_argument_group(&#39;required arguments&#39;)
+    optional = parser.add_argument_group(&#39;optional arguments&#39;)
+
+    required.add_argument(&#34;-i&#34;, &#34;--input-directory&#34;, required=True,
+                          help=&#34;Directory containing the input structure files&#34;)
+    required.add_argument(&#34;-o&#34;, &#34;--output-directory&#34;, required=True,
+                          help=&#34;Create the output directories&#34;)
+    optional.add_argument(&#34;-c&#34;, &#34;--complex-name&#34;, default=&#34;Complex&#34;,
+                          help=&#34;Reconstructed complex name&#34;)
+    optional.add_argument(&#34;-f&#34;, &#34;--force&#34;, action=&#34;store_true&#34;, default=False,
+                          help=&#34;Force overwriting if the output directory already exists&#34;)
+    optional.add_argument(&#34;-s&#34;, &#34;--stoichiometry&#34;,
+                          help=&#34;File containing the stoichiometry&#34;)
+    optional.add_argument(&#34;-v&#34;, &#34;--verbose&#34;, action=&#34;store_true&#34;, default=False,
+                          help=&#34;Program log will be printed to standard error while running&#34;)
+    optional.add_argument(&#34;-min&#34;, &#34;--minimization&#34;, nargs=&#39;?&#39;, default=False, const=50000, type=int,
+                          help=&#34;Perform an energy minimization by Conjugate Gradients algorithm &#34;
+                               &#34;with the specified number of steps or until convergence&#34;)
+    optional.add_argument(&#34;-pdb&#34;, &#34;--save-pdb&#34;, action=&#34;store_true&#34;, default=False,
+                          help=&#34;Besides the .cif file, save a .pdb file with up to 25 chains&#34;)
+    optional.add_argument(&#34;-mc&#34;, &#34;--max-chains&#34;, default=180, type=int,
+                          help=&#34;Number of chains of the complex at which to stop adding new chains&#34;)
+    optional.add_argument(&#34;-it&#34;, &#34;--identity-threshold&#34;, default=0.95, type=float,
+                          help=&#34;Minimum percentage of sequence similarity (between 0 and 1) &#34;
+                               &#34;to consider two PDB chains the same&#34;)
+    optional.add_argument(&#34;-Rt&#34;, &#34;--RMSD-threshold&#34;, default=2.5, type=float,
+                          help=&#34;Maximum RMSD value to consider two (similar) PDB chains the same&#34;)
+    optional.add_argument(&#34;-ns&#34;, &#34;--Neighbor-Search-distance&#34;, default=5, type=float,
+                          help=&#34;Minimum distance between two PDB chains to consider that &#34;
+                               &#34;they are actually interacting&#34;)
+    optional.add_argument(&#34;-cd&#34;, &#34;--clashes-distance&#34;, default=1.8, type=float,
+                          help=&#34;Maximum distance between atoms of two chains to consider that &#34;
+                               &#34;they have clashes between them&#34;)
+    optional.add_argument(&#34;-nc&#34;, &#34;--number-clashes&#34;, default=20, type=int,
+                          help=&#34;Maximum number of close atoms to consider that two chains &#34;
+                               &#34; are clashing&#34;)
+
+    args = parser.parse_args()
+
+    if args.verbose:
+        log.basicConfig(format=&#34;%(message)s&#34;, level=log.INFO)
+    else:
+        log.basicConfig(format=&#34;%(message)s&#34;, level=log.ERROR)
+        log.captureWarnings(True)
+
+    log.info(&#34;Running MacroPy&#34;)
+    parse_input_directory(args.input_directory, args.stoichiometry)
+    parse_output_directory(args.output_directory, args.force)
+
+    process_pdbs(pdb_chains, args.identity_threshold, args.Neighbor_Search_distance,
+                 args.RMSD_threshold)
+
+    build_complex(args.output_directory, args.max_chains, args.number_clashes, args.save_pdb,
+                  args.clashes_distance, stoich_dict, args.complex_name, args.identity_threshold)
+
+    if args.minimization:
+        minimize(args.output_directory, args.complex_name, args.minimization)
+
+
+if __name__ == &#34;__main__&#34;:
+    main()</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="MacroPy.Macro.add_chain_sequences"><code class="name flex">
+<span>def <span class="ident">add_chain_sequences</span></span>(<span>structure)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Add metadata to chains</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_chain_sequences(structure):
+    &#34;&#34;&#34;Add metadata to chains&#34;&#34;&#34;
+
+    for chain in structure.get_chains():
+        # Look at the first non-heteroatom residue to see if it is RNA, DNA or a protein
+        first_residue = next(res for res in chain.get_residues() if res.get_id()[0].isspace())
+        if first_residue.get_resname().startswith(&#34; &#34;):
+            # DNA or RNA sequence with 1 letter ([-1] position of resname)
+            chain.xtra[&#34;type&#34;] = &#34;nuc&#34;
+            # To check if the residue is a ribonucleotide (&#34;  X&#34;) or a deoxyribonucleotide (&#34; DX&#34;)
+            nuc_letters = &#34;A G T C U&#34;.split(&#34; &#34;)
+            is_ribonuc = lambda res: res.get_resname()[:-1] == &#34;  &#34; and \
+                                     res.get_resname()[-1] in nuc_letters
+            is_deoxyribonuc = lambda res: res.get_resname()[:-1] == &#34; D&#34; and \
+                                          res.get_resname()[-1] in nuc_letters
+            # Get the sequence
+            chain_sequence = &#34;&#34;.join([res.get_resname()[-1] for res in chain.get_residues()
+                                      if (is_ribonuc(res) or is_deoxyribonuc(res))])
+        else:
+            # Protein sequence
+            chain.xtra[&#34;type&#34;] = &#34;prot&#34;
+            # Function to change the PDB names of the residues from RES (e.g., HIS) to Res (His)
+            # to query the residue dictionary (keys as &#34;Res&#34;)
+            RES_to_Res = lambda res: res.get_resname().lower().capitalize()
+            # Get the sequence
+            chain_sequence = &#34;&#34;.join([Res_dict[RES_to_Res(res)] for res in chain.get_residues()
+                                      if RES_to_Res(res) in Res_dict])
+        chain.xtra[&#34;seq&#34;] = chain_sequence
+        # Also save the original chain ID as &lt;PDB file name&gt;:&lt;Chain ID&gt;
+        chain.xtra[&#34;full_id&#34;] = get_chain_full_id(chain)</code></pre>
+</details>
+</dd>
+<dt id="MacroPy.Macro.get_pdb_structure"><code class="name flex">
+<span>def <span class="ident">get_pdb_structure</span></span>(<span>file_path, pdb_id)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Parse PDB file</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_pdb_structure(file_path, pdb_id):
+    &#34;&#34;&#34;Parse PDB file&#34;&#34;&#34;
+
+    if file_path.split(sep=&#34;.&#34;)[-1] == &#34;gz&#34;:
+        with gzip.open(file_path, &#39;rt&#39;) as pdb_file:
+            structure = PDBParser(QUIET=True).get_structure(pdb_id, pdb_file)
+            add_chain_sequences(structure)
+            return structure
+    else:
+        structure = PDBParser(QUIET=True).get_structure(pdb_id, file_path)
+        add_chain_sequences(structure)
+        return structure</code></pre>
+</details>
+</dd>
+<dt id="MacroPy.Macro.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=&#34;&#34;&#34;MacroPy 1.0 -
+                     Reconstruct a whole biological macro-complex using PDBs of
+                     its pairwise interactions as input, either protein-protein,
+                     protein-DNA or protein-RNA.&#34;&#34;&#34;)
+
+    parser._action_groups.pop()
+    required = parser.add_argument_group(&#39;required arguments&#39;)
+    optional = parser.add_argument_group(&#39;optional arguments&#39;)
+
+    required.add_argument(&#34;-i&#34;, &#34;--input-directory&#34;, required=True,
+                          help=&#34;Directory containing the input structure files&#34;)
+    required.add_argument(&#34;-o&#34;, &#34;--output-directory&#34;, required=True,
+                          help=&#34;Create the output directories&#34;)
+    optional.add_argument(&#34;-c&#34;, &#34;--complex-name&#34;, default=&#34;Complex&#34;,
+                          help=&#34;Reconstructed complex name&#34;)
+    optional.add_argument(&#34;-f&#34;, &#34;--force&#34;, action=&#34;store_true&#34;, default=False,
+                          help=&#34;Force overwriting if the output directory already exists&#34;)
+    optional.add_argument(&#34;-s&#34;, &#34;--stoichiometry&#34;,
+                          help=&#34;File containing the stoichiometry&#34;)
+    optional.add_argument(&#34;-v&#34;, &#34;--verbose&#34;, action=&#34;store_true&#34;, default=False,
+                          help=&#34;Program log will be printed to standard error while running&#34;)
+    optional.add_argument(&#34;-min&#34;, &#34;--minimization&#34;, nargs=&#39;?&#39;, default=False, const=50000, type=int,
+                          help=&#34;Perform an energy minimization by Conjugate Gradients algorithm &#34;
+                               &#34;with the specified number of steps or until convergence&#34;)
+    optional.add_argument(&#34;-pdb&#34;, &#34;--save-pdb&#34;, action=&#34;store_true&#34;, default=False,
+                          help=&#34;Besides the .cif file, save a .pdb file with up to 25 chains&#34;)
+    optional.add_argument(&#34;-mc&#34;, &#34;--max-chains&#34;, default=180, type=int,
+                          help=&#34;Number of chains of the complex at which to stop adding new chains&#34;)
+    optional.add_argument(&#34;-it&#34;, &#34;--identity-threshold&#34;, default=0.95, type=float,
+                          help=&#34;Minimum percentage of sequence similarity (between 0 and 1) &#34;
+                               &#34;to consider two PDB chains the same&#34;)
+    optional.add_argument(&#34;-Rt&#34;, &#34;--RMSD-threshold&#34;, default=2.5, type=float,
+                          help=&#34;Maximum RMSD value to consider two (similar) PDB chains the same&#34;)
+    optional.add_argument(&#34;-ns&#34;, &#34;--Neighbor-Search-distance&#34;, default=5, type=float,
+                          help=&#34;Minimum distance between two PDB chains to consider that &#34;
+                               &#34;they are actually interacting&#34;)
+    optional.add_argument(&#34;-cd&#34;, &#34;--clashes-distance&#34;, default=1.8, type=float,
+                          help=&#34;Maximum distance between atoms of two chains to consider that &#34;
+                               &#34;they have clashes between them&#34;)
+    optional.add_argument(&#34;-nc&#34;, &#34;--number-clashes&#34;, default=20, type=int,
+                          help=&#34;Maximum number of close atoms to consider that two chains &#34;
+                               &#34; are clashing&#34;)
+
+    args = parser.parse_args()
+
+    if args.verbose:
+        log.basicConfig(format=&#34;%(message)s&#34;, level=log.INFO)
+    else:
+        log.basicConfig(format=&#34;%(message)s&#34;, level=log.ERROR)
+        log.captureWarnings(True)
+
+    log.info(&#34;Running MacroPy&#34;)
+    parse_input_directory(args.input_directory, args.stoichiometry)
+    parse_output_directory(args.output_directory, args.force)
+
+    process_pdbs(pdb_chains, args.identity_threshold, args.Neighbor_Search_distance,
+                 args.RMSD_threshold)
+
+    build_complex(args.output_directory, args.max_chains, args.number_clashes, args.save_pdb,
+                  args.clashes_distance, stoich_dict, args.complex_name, args.identity_threshold)
+
+    if args.minimization:
+        minimize(args.output_directory, args.complex_name, args.minimization)</code></pre>
+</details>
+</dd>
+<dt id="MacroPy.Macro.parse_input_directory"><code class="name flex">
+<span>def <span class="ident">parse_input_directory</span></span>(<span>path, stoichiometry_path)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Check format of files to be processed</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def parse_input_directory(path, stoichiometry_path):
+    &#34;&#34;&#34;Check format of files to be processed&#34;&#34;&#34;
+
+    log.info(&#34;Parsing input PDB files&#34;)
+    # Check if input directory is a directory
+    input_dir_error_msg = &#34;Error reading input directory. &#34;
+    if not os.path.isdir(path):
+        log.error(input_dir_error_msg + f&#34;&#39;{path}&#39; is not a directory&#34;)
+        sys.exit(1)
+
+    file_names = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
+                  and not f.startswith(&#39;.&#39;)]
+
+    all_chains = set()
+    all_chains_by_pdb = dict()
+    all_prefixes = set()
+
+    # Check each file
+    for file_name in file_names:
+        # Error messages
+        file_error_msg = f&#34;Error in file &#39;{file_name}&#39;: &#34;
+        wrong_naming_msg = &#34;&#34;&#34;wrong file naming structure. It should be as follows\n
+                            &lt;PDB name&gt;_&lt;chain1&gt;_&lt;chain2&gt;.pdb(.gz) or
+                            &lt;Uniprot ID&gt;.&lt;DNA or RNA&gt;.&lt;PDB name&gt;_&lt;chain1&gt;_&lt;chain2&gt;.pdb(.gz)&#34;&#34;&#34;
+
+        file_name_parts = file_name.split(&#34;.&#34;)
+
+        # Check extensions and name
+        has_prot_prot_format_len = len(file_name_parts) == 2 or len(file_name_parts) == 3
+        has_prot_dna_format_len = len(file_name_parts) == 4 or len(file_name_parts) == 5
+
+        has_pdb_format = file_name_parts[-1] == &#34;pdb&#34;
+        has_compressed_format = file_name_parts[-1] == &#34;gz&#34; and file_name_parts[-2] == &#34;pdb&#34;
+
+        if not (has_prot_prot_format_len or has_prot_dna_format_len) or (
+                len(file_name_parts) == 2 and not has_pdb_format) or (
+                len(file_name_parts) == 3 and not has_compressed_format) or (
+                len(file_name_parts) == 4 and not has_pdb_format) or (
+                len(file_name_parts) == 5 and not has_compressed_format):
+            log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
+            sys.exit(1)
+
+        file_name_parts_no_ext = [part for part in file_name_parts
+                                  if part != &#34;pdb&#34; and part != &#34;gz&#34;]
+
+        structure_name = file_name_parts_no_ext[-1]
+        structure_name_parts = structure_name.split(sep=&#34;_&#34;)
+        if len(structure_name_parts) != 3:
+            log.error(input_dir_error_msg + file_error_msg + wrong_naming_msg)
+            sys.exit(1)
+        pdb_name = structure_name_parts[0]
+        chains_in_file_name = structure_name_parts[1:]
+
+        if has_prot_dna_format_len:
+            chains_in_file_name = [chain_letter for chain_letter in &#34;&#34;.join(chains_in_file_name)]
+
+        if len(pdb_name) != 4:
+            log.error(input_dir_error_msg + file_error_msg +
+                      &#34;PDB name must have 4 characters:\n&#34;
+                      &#34;&lt;PDB name&gt;_&lt;chain1&gt;_&lt;chain2&gt;.pdb(.gz) or &#34;
+                      &#34;&lt;Uniprot ID&gt;.&lt;DNA or RNA&gt;.&lt;PDB name&gt;_&lt;chain1&gt;_&lt;chain2&gt;.pdb(.gz)&#34;)
+            sys.exit(1)
+
+        if not pdb_name.isalnum():
+            log.error(input_dir_error_msg + file_error_msg + &#34;PDB name must be alphanumeric&#34;)
+            sys.exit(1)
+
+        # Check prefix
+        if len(file_name_parts_no_ext) &gt; 1:
+            prefix = file_name_parts_no_ext[0]
+            if len(prefix) != 6 or not prefix[0].isalnum() or not prefix[1:].isnumeric():
+                log.error(input_dir_error_msg + file_error_msg +
+                          &#34;Uniprot ID must have one letter and five numbers&#34;)
+                sys.exit(1)
+            all_prefixes.add(prefix)
+
+        # Process PDB
+        file_name_no_ext = &#34;.&#34;.join(file_name_parts_no_ext)
+        structure = get_pdb_structure(os.path.join(path, file_name), file_name_no_ext)
+
+        # Add chains to the pdb_chains list
+        for chain in structure.get_chains():
+            pdb_chains.append(chain)
+
+        if pdb_name not in all_chains_by_pdb:
+            all_chains_by_pdb[pdb_name] = set()
+
+        # Check that the chains in the file name are in the PDB
+        chain_ids = [c.get_id() for c in structure.get_chains()]
+        for chain_id in chains_in_file_name:
+            if chain_id not in chain_ids:
+                log.error(input_dir_error_msg + file_error_msg + f&#34;chain {chain_id} not present&#34;
+                                                                 &#34; in the structure&#34;)
+                sys.exit(1)
+            else:
+                all_chains.add(chain_id)
+                all_chains_by_pdb[pdb_name].add(chain_id)
+                chain_ids.remove(chain_id)
+
+    if stoichiometry_path:
+        parse_stoichiometry(stoichiometry_path, all_chains_by_pdb, all_prefixes, all_chains,
+                            stoich_dict)</code></pre>
+</details>
+</dd>
+<dt id="MacroPy.Macro.parse_output_directory"><code class="name flex">
+<span>def <span class="ident">parse_output_directory</span></span>(<span>path_dir, force)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create/Overwrite output directory</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def parse_output_directory(path_dir, force):
+    &#34;&#34;&#34;Create/Overwrite output directory&#34;&#34;&#34;
+
+    output_dir_error_msg = &#34;Error with output directory. &#34;
+    if force is True:
+        log.info(&#34;Removing files from output directories&#34;)
+        for folder in [&#39;structures&#39;, &#39;analysis&#39;]:
+            dir = os.path.join(path_dir, folder)
+            os.makedirs(dir, exist_ok=True)
+            for file in os.listdir(dir):
+                os.remove(os.path.join(dir, file))
+    else:
+        if not os.path.exists(path_dir):
+            log.info(&#34;Creating output directories&#34;)
+            for folder in [&#39;structures&#39;, &#39;analysis&#39;]:
+                os.makedirs(os.path.join(path_dir, folder), exist_ok=False)
+        else:
+            log.error(output_dir_error_msg + f&#34;&#39;{path_dir}&#39; directory already exists. Use [-f, &#34;
+                                             &#34;--force] option to overwrite.&#34;)
+            sys.exit(1)</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="MacroPy" href="index.html">MacroPy</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="MacroPy.Macro.add_chain_sequences" href="#MacroPy.Macro.add_chain_sequences">add_chain_sequences</a></code></li>
+<li><code><a title="MacroPy.Macro.get_pdb_structure" href="#MacroPy.Macro.get_pdb_structure">get_pdb_structure</a></code></li>
+<li><code><a title="MacroPy.Macro.main" href="#MacroPy.Macro.main">main</a></code></li>
+<li><code><a title="MacroPy.Macro.parse_input_directory" href="#MacroPy.Macro.parse_input_directory">parse_input_directory</a></code></li>
+<li><code><a title="MacroPy.Macro.parse_output_directory" href="#MacroPy.Macro.parse_output_directory">parse_output_directory</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+</footer>
+</body>
+</html>
