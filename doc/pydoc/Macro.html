@@ -45,7 +45,7 @@ stoich_dict = dict()
 def parse_input_directory(path, stoichiometry_path):
     &#34;&#34;&#34;Check format of files to be processed&#34;&#34;&#34;
 
-    log.info(&#34;Parsing input PDB files&#34;)
+    log.info(&#34;Parsing input directory and input PDB files&#34;)
     # Check if input directory is a directory
     input_dir_error_msg = &#34;Error reading input directory. &#34;
     if not os.path.isdir(path):
@@ -197,7 +197,7 @@ def parse_output_directory(path_dir, force):
 
     output_dir_error_msg = &#34;Error with output directory. &#34;
     if force is True:
-        log.info(&#34;Removing files from output directories&#34;)
+        log.info(&#34;Removing files from existing output directory&#34;)
         for folder in [&#39;structures&#39;, &#39;analysis&#39;]:
             dir = os.path.join(path_dir, folder)
             os.makedirs(dir, exist_ok=True)
@@ -205,7 +205,7 @@ def parse_output_directory(path_dir, force):
                 os.remove(os.path.join(dir, file))
     else:
         if not os.path.exists(path_dir):
-            log.info(&#34;Creating output directories&#34;)
+            log.info(&#34;Creating output directory&#34;)
             for folder in [&#39;structures&#39;, &#39;analysis&#39;]:
                 os.makedirs(os.path.join(path_dir, folder), exist_ok=False)
         else:
@@ -280,6 +280,8 @@ def main():
 
     if args.minimization:
         minimize(args.output_directory, args.complex_name, args.minimization)
+
+    log.info(&#34;Finished!&#34;)
 
 
 if __name__ == &#34;__main__&#34;:
@@ -431,7 +433,9 @@ if __name__ == &#34;__main__&#34;:
                   args.clashes_distance, stoich_dict, args.complex_name, args.identity_threshold)
 
     if args.minimization:
-        minimize(args.output_directory, args.complex_name, args.minimization)</code></pre>
+        minimize(args.output_directory, args.complex_name, args.minimization)
+
+    log.info(&#34;Finished!&#34;)</code></pre>
 </details>
 </dd>
 <dt id="MacroPy.Macro.parse_input_directory"><code class="name flex">
@@ -446,7 +450,7 @@ if __name__ == &#34;__main__&#34;:
 <pre><code class="python">def parse_input_directory(path, stoichiometry_path):
     &#34;&#34;&#34;Check format of files to be processed&#34;&#34;&#34;
 
-    log.info(&#34;Parsing input PDB files&#34;)
+    log.info(&#34;Parsing input directory and input PDB files&#34;)
     # Check if input directory is a directory
     input_dir_error_msg = &#34;Error reading input directory. &#34;
     if not os.path.isdir(path):
@@ -561,7 +565,7 @@ if __name__ == &#34;__main__&#34;:
 
     output_dir_error_msg = &#34;Error with output directory. &#34;
     if force is True:
-        log.info(&#34;Removing files from output directories&#34;)
+        log.info(&#34;Removing files from existing output directory&#34;)
         for folder in [&#39;structures&#39;, &#39;analysis&#39;]:
             dir = os.path.join(path_dir, folder)
             os.makedirs(dir, exist_ok=True)
@@ -569,7 +573,7 @@ if __name__ == &#34;__main__&#34;:
                 os.remove(os.path.join(dir, file))
     else:
         if not os.path.exists(path_dir):
-            log.info(&#34;Creating output directories&#34;)
+            log.info(&#34;Creating output directory&#34;)
             for folder in [&#39;structures&#39;, &#39;analysis&#39;]:
                 os.makedirs(os.path.join(path_dir, folder), exist_ok=False)
         else:

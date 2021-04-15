@@ -61,6 +61,10 @@ def process_pdbs(pdb_chains, identity_threshold, ns_threshold, rmsd_threshold):
         initialize_model_chains(chain, identity_threshold, rmsd_threshold)
         add_interactions(chain, ns_threshold)
 
+    for m_c in processed_chains:
+        log.info(f&#34;ModelChain {m_c.id} contains the chains: %s&#34;,
+                 &#34;, &#34;.join(map(str,list(int[0].xtra[&#39;full_id&#39;] for int in m_c.interactions))))
+
 
 def initialize_model_chains(chain, identity_threshold, rmsd_threshold):
     &#34;&#34;&#34;Create ModelChain objects with the processed chains from the PDB files&#34;&#34;&#34;
@@ -289,7 +293,11 @@ and the RMSD between them</p></div>
     for chain in sorted(pdb_chains, key=lambda x: (len(x.xtra[&#34;seq&#34;]), x.xtra[&#34;full_id&#34;]),
                         reverse=True):
         initialize_model_chains(chain, identity_threshold, rmsd_threshold)
-        add_interactions(chain, ns_threshold)</code></pre>
+        add_interactions(chain, ns_threshold)
+
+    for m_c in processed_chains:
+        log.info(f&#34;ModelChain {m_c.id} contains the chains: %s&#34;,
+                 &#34;, &#34;.join(map(str,list(int[0].xtra[&#39;full_id&#39;] for int in m_c.interactions))))</code></pre>
 </details>
 </dd>
 </dl>

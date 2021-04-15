@@ -253,7 +253,7 @@ def main():
     if args.minimization:
         minimize(args.output_directory, args.complex_name, args.minimization)
 
-    log.info("Finished!")    
+    log.info("Finished!")
 
 
 if __name__ == "__main__":
