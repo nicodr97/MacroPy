@@ -17,7 +17,7 @@ stoich_dict = dict()
 def parse_input_directory(path, stoichiometry_path):
     """Check format of files to be processed"""
 
-    log.info("Parsing input PDB files")
+    log.info("Parsing input directory and input PDB files")
     # Check if input directory is a directory
     input_dir_error_msg = "Error reading input directory. "
     if not os.path.isdir(path):
@@ -169,7 +169,7 @@ def parse_output_directory(path_dir, force):
 
     output_dir_error_msg = "Error with output directory. "
     if force is True:
-        log.info("Removing files from output directories")
+        log.info("Removing files from existing output directory")
         for folder in ['structures', 'analysis']:
             dir = os.path.join(path_dir, folder)
             os.makedirs(dir, exist_ok=True)
@@ -177,7 +177,7 @@ def parse_output_directory(path_dir, force):
                 os.remove(os.path.join(dir, file))
     else:
         if not os.path.exists(path_dir):
-            log.info("Creating output directories")
+            log.info("Creating output directory")
             for folder in ['structures', 'analysis']:
                 os.makedirs(os.path.join(path_dir, folder), exist_ok=False)
         else:
@@ -252,6 +252,8 @@ def main():
 
     if args.minimization:
         minimize(args.output_directory, args.complex_name, args.minimization)
+
+    log.info("Finished!")    
 
 
 if __name__ == "__main__":

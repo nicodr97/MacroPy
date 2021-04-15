@@ -9,6 +9,7 @@ def get_chain_full_id(chain):
 
 
 def align(chain, seq):
+    """Align the sequence of a chain object with a sequence string"""
     # Get chain sequence from the xtra attribute
     chain_seq = chain.xtra["seq"]
     # Compare the chain_seq with the sequence (seq)
@@ -28,6 +29,10 @@ def align(chain, seq):
 
 
 def superimpose(ref_chain, mov_chain, alignment_positions=None):
+    """
+    Superimpose the chain to the reference chain,
+    only by the aligned positions if they are provided
+    """
     if alignment_positions is not None:
         start_res, end_res = alignment_positions[0][0]
         chain_res = list(ref_chain.get_residues())[start_res:end_res]
@@ -86,39 +91,40 @@ def save_structure(structure, out_dir, complex_name, save_pdb):
 
 
 def minimize(out_dir, complex_name, max_steps):
-    """TODO"""
+    """Fill the missing atoms of the complex file and minimize it"""
 
+    # Import only if the function is called
     from modeller import Environ, Selection
     from modeller import log as mlog
     from modeller.scripts import complete_pdb
     from modeller.optimizers import ConjugateGradients, actions
 
+    # Set environment variables and import default libraries
     mlog.level(0)
     env = Environ(0)
     env.io.atom_files_directory = ['../atom_files']
     env.edat.dynamic_sphere = True
-
     env.libs.topology.read(file='$(LIB)/top_heav.lib')
     env.libs.parameters.read(file='$(LIB)/par.lib')
 
+    # Read the structure file, fill the missing atoms and create a selection (all)
     pdb_file = os.path.join(out_dir, "structures", complex_name + ".cif")
+    log.info(f"Filling mising atoms of {complex_name}.cif prior to minimization")
     mdl = complete_pdb(env, pdb_file)
-
-    # Select all atoms:
     atmsel = Selection(mdl)
 
-    # Generate the restraints:
+    # Generate the minimization restraints
     mdl.restraints.make(atmsel, restraint_type='stereo', spline_on_site=False)
 
-    # Create optimizer object and set defaults for all further optimizations
+    # Create a ConjugateGradients object and perform the minimization
     cg = ConjugateGradients(output='REPORT')
-
-    # Write basic stats on the optimization on a file
     with open(os.path.join(out_dir, "analysis", "minimization" + ".log"), 'w') as trcfil:
-        # Run CG on the all-atom selection; write stats every 10 steps
+        # Run until convergence or until max_steps and print progression to the output file every 10 steps
+        log.info(f"Running Conjugate Gradients minimization")
         cg.optimize(atmsel, min_atom_shift=0.01, max_iterations=max_steps,
                     actions=actions.Trace(10, trcfil))
 
     # Output the minimized structure
+    log.info(f"Saving minimized complex: {complex_name}_minimized.cif")
     mdl.write(file=os.path.join(out_dir, 'structures', complex_name + '_minimized.cif'),
               model_format="MMCIF")

@@ -33,6 +33,10 @@ def process_pdbs(pdb_chains, identity_threshold, ns_threshold, rmsd_threshold):
         initialize_model_chains(chain, identity_threshold, rmsd_threshold)
         add_interactions(chain, ns_threshold)
 
+    for m_c in processed_chains:
+        log.info(f"ModelChain {m_c.id} contains the chains: %s",
+                 ", ".join(map(str,list(int[0].xtra['full_id'] for int in m_c.interactions))))
+
 
 def initialize_model_chains(chain, identity_threshold, rmsd_threshold):
     """Create ModelChain objects with the processed chains from the PDB files"""
