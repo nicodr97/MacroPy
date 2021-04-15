@@ -29,6 +29,7 @@ def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distanc
     # Save the original ID and change its ID in the complex
     macro_complex[0][first_chain.get_id()].xtra["full_id"] = get_chain_full_id(first_chain)
     macro_complex[0][first_chain.get_id()].id = chain_ids.pop(0)
+    log.info(f"First chain in the complex: {get_chain_full_id(first_chain)}")
 
     if stoich_dict:
         update_stoichiometry(stoich_dict, first_chain, current_stoich_dict,
