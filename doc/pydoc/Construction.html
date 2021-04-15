@@ -57,6 +57,7 @@ def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distanc
     # Save the original ID and change its ID in the complex
     macro_complex[0][first_chain.get_id()].xtra[&#34;full_id&#34;] = get_chain_full_id(first_chain)
     macro_complex[0][first_chain.get_id()].id = chain_ids.pop(0)
+    log.info(f&#34;First chain in the complex: {get_chain_full_id(first_chain)}&#34;)
 
     if stoich_dict:
         update_stoichiometry(stoich_dict, first_chain, current_stoich_dict,
@@ -143,7 +144,7 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
             for percentage, positions in align(ref_chain, interaction[0].xtra[&#34;seq&#34;]):
                 # Add the interaction if the alignment score % is higher than the threshold
                 if percentage &gt; identity_threshold:
-                    # Get the rotation-tidentity_thresholdranslation matrix
+                    # Get the rotation-translation matrix
                     rmsd, mov = superimpose(ref_chain, interaction[0], positions)
                     # Apply the rotation-translation
                     interactor.transform(mov[0], mov[1])
@@ -268,7 +269,7 @@ def is_clashing(structure, interactor, clashes_distance, number_clashes):
             for percentage, positions in align(ref_chain, interaction[0].xtra[&#34;seq&#34;]):
                 # Add the interaction if the alignment score % is higher than the threshold
                 if percentage &gt; identity_threshold:
-                    # Get the rotation-tidentity_thresholdranslation matrix
+                    # Get the rotation-translation matrix
                     rmsd, mov = superimpose(ref_chain, interaction[0], positions)
                     # Apply the rotation-translation
                     interactor.transform(mov[0], mov[1])
@@ -307,6 +308,7 @@ def is_clashing(structure, interactor, clashes_distance, number_clashes):
     # Save the original ID and change its ID in the complex
     macro_complex[0][first_chain.get_id()].xtra[&#34;full_id&#34;] = get_chain_full_id(first_chain)
     macro_complex[0][first_chain.get_id()].id = chain_ids.pop(0)
+    log.info(f&#34;First chain in the complex: {get_chain_full_id(first_chain)}&#34;)
 
     if stoich_dict:
         update_stoichiometry(stoich_dict, first_chain, current_stoich_dict,

@@ -190,7 +190,7 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="""MacroPy 1.0 -
-                     Reconstruct a whole biological macro-complex using PDBs of
+                     Reconstruct a whole biological macro-complex using PDB's of
                      its pairwise interactions as input, either protein-protein,
                      protein-DNA or protein-RNA.""")
 
