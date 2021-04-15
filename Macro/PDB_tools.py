@@ -119,12 +119,13 @@ def minimize(out_dir, complex_name, max_steps):
     # Create a ConjugateGradients object and perform the minimization
     cg = ConjugateGradients(output='REPORT')
     with open(os.path.join(out_dir, "analysis", "minimization" + ".log"), 'w') as trcfil:
-        # Run until convergence or until max_steps and print progression to the output file every 10 steps
+        # Run until convergence or until max_steps and print progression to the output file
+        # every 10 steps
         log.info(f"Running Conjugate Gradients minimization")
         cg.optimize(atmsel, min_atom_shift=0.01, max_iterations=max_steps,
                     actions=actions.Trace(10, trcfil))
 
     # Output the minimized structure
-    log.info(f"Saving minimized complex: {complex_name}_minimized.cif")
     mdl.write(file=os.path.join(out_dir, 'structures', complex_name + '_minimized.cif'),
               model_format="MMCIF")
+    log.info(f"Minimized complex saved as {complex_name}_minimized.cif")
