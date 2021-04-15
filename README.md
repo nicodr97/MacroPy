@@ -79,7 +79,7 @@ optional arguments:
 ```
 
 
-For more details about MacroPy go to https://github.com/nicodr97/MacroPy/blob/master/doc/Report.pdf
+For more details about MacroPy check the [report](https://github.com/nicodr97/MacroPy/blob/master/doc/Report.pdf).
 
 # Authors
 Nicolás Díaz Roussel  
