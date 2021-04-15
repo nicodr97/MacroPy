@@ -190,39 +190,44 @@ def main():
                                                  Reconstruct a whole biological macro-complex using PDBs of
                                                  its pairwise interactions as input, either protein-protein,
                                                  protein-DNA or protein-RNA.""")
-    parser.add_argument("-i", "--input-directory", required=True,
+    parser._action_groups.pop()
+    required = parser.add_argument_group('required arguments')
+    optional = parser.add_argument_group('optional arguments')
+
+    required.add_argument("-i", "--input-directory", required=True,
                         help="Directory containing the input structure files")
-    parser.add_argument("-o", "--output-directory", required=True,
+    required.add_argument("-o", "--output-directory", required=True,
                         help="Create the output directories")
-    parser.add_argument("-c", "--complex-name", default="Complex",
+    optional.add_argument("-c", "--complex-name", default="Complex",
                         help="Reconstructed complex name")
-    parser.add_argument("-f", "--force", action="store_true", default=False,
+    optional.add_argument("-f", "--force", action="store_true", default=False,
                         help="Force overwriting if the output directory already exists")
-    parser.add_argument("-s", "--stoichiometry",
+    optional.add_argument("-s", "--stoichiometry",
                         help="File containing the stoichiometry")
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
+    optional.add_argument("-v", "--verbose", action="store_true", default=False,
                         help="Program log will be printed to standard error while running")
-    parser.add_argument("-min", "--minimization", nargs='?', default=False, const=True,
+    optional.add_argument("-min", "--minimization", nargs='?', default=False, const=True,
                         help="Perform an energy minimization by Conjugate Gradients algorithm with the specified "
                              "(-min X) number of steps (or, if no number is specified (-min), until convergence)")
-    parser.add_argument("-pdb", "--save-pdb", action="store_true", default=False,
+    optional.add_argument("-pdb", "--save-pdb", action="store_true", default=False,
                         help="Besides the .cif file, save a .pdb file with up to 25 chains")
-    parser.add_argument("-mc", "--max-chains", default=180,
+    optional.add_argument("-mc", "--max-chains", default=180,
                         help="Number of chains of the complex at which to stop adding new chains")
-    parser.add_argument("-it", "--identity-threshold", default=0.95,
+    optional.add_argument("-it", "--identity-threshold", default=0.95,
                         help="Minimum percentage of sequence similarity (between 0 and 1) "
                              "to consider two PDB chains the same")
-    parser.add_argument("-Rt", "--RMSD-threshold", default=2.5,
+    optional.add_argument("-Rt", "--RMSD-threshold", default=2.5,
                         help="Maximum RMSD value to consider two (similar) PDB chains the same")
-    parser.add_argument("-ns", "--Neighbor-Search-distance", default=5,
+    optional.add_argument("-ns", "--Neighbor-Search-distance", default=5,
                         help="Minimum distance between two PDB chains to consider that "
                              "they are actually interacting")
-    parser.add_argument("-cd", "--clashes-distance", default=1.8,
+    optional.add_argument("-cd", "--clashes-distance", default=1.8,
                         help="Maximum distance between atoms of two chains to consider that "
                              "they have clashes between them")
-    parser.add_argument("-nc", "--number-clashes", default=20,
+    optional.add_argument("-nc", "--number-clashes", default=20,
                         help="Maximum number of close atoms to consider that two chains "
                              " are clashing")
+
     args = parser.parse_args()
 
     if args.verbose:
