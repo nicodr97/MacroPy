@@ -115,7 +115,7 @@ def add_modelchain_interactions(structure, ref_chain, modelchain_obj, clashes_di
             for percentage, positions in align(ref_chain, interaction[0].xtra["seq"]):
                 # Add the interaction if the alignment score % is higher than the threshold
                 if percentage > identity_threshold:
-                    # Get the rotation-tidentity_thresholdranslation matrix
+                    # Get the rotation-translation matrix
                     rmsd, mov = superimpose(ref_chain, interaction[0], positions)
                     # Apply the rotation-translation
                     interactor.transform(mov[0], mov[1])
