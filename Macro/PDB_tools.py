@@ -75,6 +75,7 @@ def save_structure(structure, out_dir, complex_name, save_pdb):
     io = MMCIFIO()
     io.set_structure(structure)
     io.save(os.path.join(out_dir, "structures", complex_name + ".cif"))
+    log.info(f"Complex saved as {complex_name}.cif")
 
     if save_pdb:
         io = PDBIO()
@@ -83,6 +84,7 @@ def save_structure(structure, out_dir, complex_name, save_pdb):
             structure[0].detach_child( chain.get_id() )
         io.set_structure(structure)
         io.save(os.path.join(out_dir, "structures", complex_name + ".pdb"))
+        log.info(f"Complex saved as {complex_name}.pdb")
 
 
 

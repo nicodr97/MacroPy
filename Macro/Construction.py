@@ -14,6 +14,7 @@ current_stoich_dict_by_prefix = dict()  # Count the chain stoichiometry when the
 
 def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distance,
                   stoich_dict, complex_name, identity_threshold):
+    log.info("Building new complex")
     first_modelchain = choose_first_modelchain(stoich_dict)
 
     # Initialize the complex Structure object with one of the PDBs of the ModelChain
@@ -58,6 +59,8 @@ def build_complex(out_dir, max_chains, number_clashes, save_pdb, clashes_distanc
         log.info(f"Chains after adding: {new_chain_number}")
         chain_number_change = new_chain_number - chain_number
 
+    total_chains = len(list(macro_complex.get_chains()))
+    log.info(f"The final complex has {total_chains} chains")
     if current_stoich_dict != stoich_dict:
         log.error("Stoichiometry couldn't be satisfied")
     # Finally, save the PDB of the Complex

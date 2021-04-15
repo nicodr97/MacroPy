@@ -33,21 +33,6 @@ def process_pdbs(pdb_chains, identity_threshold, ns_threshold, rmsd_threshold):
         initialize_model_chains(chain, identity_threshold, rmsd_threshold)
         add_interactions(chain, ns_threshold)
 
-    # Loop for checking the result
-    log.info("Processed chains: \n\n")
-    log.info(chain_to_model_chain)
-    for model_chain in processed_chains:
-        log.info(model_chain.id)
-        log.info(model_chain.sequence)
-        for chain_interactions in model_chain.interactions:
-            chain1 = chain_interactions[0]
-            chain2 = chain_interactions[-1]
-            chain1_structure = chain1.parent.parent
-            chain2_structure = chain2.parent.parent
-
-            log.info(f"Interaction of {chain1.get_id()} of structure {chain1_structure.get_id()}"
-                     f" and {chain2.get_id()} of structure {chain2_structure.get_id()}")
-
 
 
 
@@ -91,8 +76,6 @@ def get_similar_chain_model(chain, identity_threshold, rmsd_threshold):
             # If they are aligned, superimpose them to compare the RMSD with its threshold
             rmsd, rotran = superimpose(chain, model_chain.chain, positions)
             if rmsd < float(rmsd_threshold):
-                log.info(f"It's aligned with {model_chain.sequence}: ({positions})")
-                log.info(f"RMSD = {rmsd}")
                 # If both requirements are fulfilled, return the ModelChain to which the chain will belong
                 return model_chain
     # If there isn't any, return None

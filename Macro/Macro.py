@@ -15,6 +15,7 @@ stoich_dict = dict()
 
 
 def parse_input_directory(path, stoichiometry_path):
+    log.info("Parsing input PDB files")
     # Check if input directory is a directory
     input_dir_error_msg = "Error reading input directory. "
     if not os.path.isdir(path):
@@ -165,6 +166,7 @@ def add_chain_sequences(structure):
 def parse_output_directory(path_dir, force):
     output_dir_error_msg = "Error with output directory. "
     if force is True:
+        log.info("Removing files from output directories")
         for folder in ['structures', 'analysis']:
             dir = os.path.join(path_dir, folder)
             os.makedirs(dir, exist_ok=True)
@@ -172,6 +174,7 @@ def parse_output_directory(path_dir, force):
                 os.remove(os.path.join(dir, file))
     else:
         if not os.path.exists(path_dir):
+            log.info("Creating output directories")
             for folder in ['structures', 'analysis']:
                 os.makedirs(os.path.join(path_dir, folder), exist_ok=False)
         else:
@@ -228,6 +231,7 @@ def main():
         log.basicConfig(format="%(message)s", level=log.ERROR)
         log.captureWarnings(True)
 
+    log.info("Running MacroPy")
     parse_input_directory(args.input_directory, args.stoichiometry)
     parse_output_directory(args.output_directory, args.force)
 
